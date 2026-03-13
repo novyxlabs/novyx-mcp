@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "novyx-mcp"
+version = "2.1.5"
+description = "Persistent memory for AI agents. 23 MCP tools for remember, recall, rollback, audit, knowledge graph, and context spaces. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally (zero config) or with Novyx Cloud."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Novyx Labs", email = "blake@novyxlabs.com"}
+]
+maintainers = [
+    {name = "Novyx Labs", email = "blake@novyxlabs.com"}
+]
+keywords = [
+    "mcp",
+    "novyx",
+    "memory",
+    "ai",
+    "agents",
+    "claude",
+    "claude-code",
+    "claude-md",
+    "model-context-protocol",
+    "multi-agent",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "novyx>=2.0.0",
+    "mcp>=1.2.0",
+]
+
+[project.optional-dependencies]
+local = [
+    "sentence-transformers>=2.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://novyxlabs.com"
+Documentation = "https://docs.novyxlabs.com"
+
+[project.scripts]
+novyx-mcp = "novyx_mcp.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["novyx_mcp*"]
+
+[tool.setuptools.package-data]
+novyx_mcp = ["py.typed"]

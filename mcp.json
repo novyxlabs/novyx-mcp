@@ -1,0 +1,86 @@
+{
+  "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
+  "name": "novyx-mcp",
+  "version": "2.1.5",
+  "description": "Persistent memory for AI agents. 23 MCP tools for remember, recall, rollback, audit, knowledge graph, and context spaces. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/novyxlabs/novyx-mcp",
+  },
+  "homepage": "https://novyxlabs.com",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Novyx Labs",
+      "email": "blake@novyxlabs.com",
+      "url": "https://novyxlabs.com"
+    }
+  ],
+  "keywords": [
+    "memory",
+    "ai",
+    "agents",
+    "rollback",
+    "audit",
+    "mcp",
+    "claude",
+    "claude-code",
+    "claude-md",
+    "multi-agent",
+    "semantic-search",
+    "sqlite",
+    "knowledge-graph"
+  ],
+  "packages": {
+    "pypi": {
+      "name": "novyx-mcp",
+      "version": "2.1.5",
+      "extras": {
+        "local": "Includes sentence-transformers for higher quality local embeddings"
+      }
+    }
+  },
+  "tools": [
+    {"name": "remember", "description": "Store a memory with tags, importance, and optional TTL"},
+    {"name": "recall", "description": "Semantic search across stored memories"},
+    {"name": "forget", "description": "Delete a specific memory by ID"},
+    {"name": "memories", "description": "List all memories with optional tag filtering"},
+    {"name": "memory", "description": "Get a single memory by ID"},
+    {"name": "rollback", "description": "Undo operations after a timestamp (supports relative time like '5 minutes ago')"},
+    {"name": "audit", "description": "View the full audit trail of memory operations"},
+    {"name": "stats", "description": "Get memory statistics including count, importance distribution, and tags"},
+    {"name": "link", "description": "Create a relationship link between two memories"},
+    {"name": "triple", "description": "Add a subject-predicate-object triple to the knowledge graph"},
+    {"name": "triples", "description": "Query the knowledge graph by subject, predicate, or object"},
+    {"name": "create_space", "description": "Create an isolated context space for scoped memory"},
+    {"name": "list_spaces", "description": "List all context spaces"},
+    {"name": "get_space", "description": "Get details of a context space"},
+    {"name": "update_space", "description": "Update a context space's name or description"},
+    {"name": "delete_space", "description": "Delete a context space"},
+    {"name": "usage", "description": "Check current tier, limits, and usage"},
+    {"name": "share_context", "description": "Share a tagged set of memories with another user (cloud only)"},
+    {"name": "replay_timeline", "description": "View the full timeline of memory changes (cloud only)"},
+    {"name": "replay_snapshot", "description": "Get a point-in-time snapshot of all memories (cloud only)"},
+    {"name": "replay_lifecycle", "description": "View the full lifecycle of a single memory (cloud only)"},
+    {"name": "replay_diff", "description": "Compare memory state between two timestamps (cloud only)"},
+    {"name": "cortex_status", "description": "Check background analysis status (cloud only)"}
+  ],
+  "resources": [
+    {"name": "memory_stats", "description": "Current memory statistics"},
+    {"name": "recent_memories", "description": "Last 10 memories stored"},
+    {"name": "audit_log", "description": "Recent audit trail entries"},
+    {"name": "knowledge_graph", "description": "Knowledge graph triples"},
+    {"name": "context_spaces", "description": "List of context spaces"},
+    {"name": "usage_info", "description": "Current tier and usage limits"}
+  ],
+  "prompts": [
+    {"name": "memory_context", "description": "Inject relevant memories into the conversation context"},
+    {"name": "knowledge_graph_context", "description": "Inject knowledge graph facts into context"},
+    {"name": "memory_management", "description": "Guide for organizing and maintaining memories"}
+  ],
+  "capabilities": {
+    "local_mode": true,
+    "cloud_mode": true,
+    "zero_config": true
+  }
+}

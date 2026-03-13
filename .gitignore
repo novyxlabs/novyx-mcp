@@ -1,0 +1,4 @@
+novyx_mcp/__pycache__/
+*.pyc
+dist/
+*.egg-info/
