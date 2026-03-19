@@ -1,0 +1,48 @@
+name: Change Intelligence Feedback Dispatch
+
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  dispatch:
+    if: >
+      github.event.issue.pull_request &&
+      (contains(github.event.comment.body, '/ci correct') ||
+       contains(github.event.comment.body, '/ci wrong-doc') ||
+       contains(github.event.comment.body, '/ci missed-doc'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Feedback
+        env:
+          GH_TOKEN: ${{ secrets.CHANGE_INTELLIGENCE_DISPATCH_TOKEN }}
+          OWNER_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "event_type": "analyze-pr-feedback",
+              "client_payload": {
+                  "repository": {"full_name": os.environ["OWNER_REPO"]},
+                  "issue": {
+                      "number": int(os.environ["ISSUE_NUMBER"]),
+                      "pull_request": {"url": "present"},
+                  },
+                  "comment": {
+                      "body": os.environ.get("COMMENT_BODY", ""),
+                      "html_url": os.environ.get("COMMENT_URL", ""),
+                      "user": {"login": os.environ.get("COMMENTER", "")},
+                  },
+              },
+          }
+          Path("/tmp/change-intelligence-feedback-dispatch.json").write_text(json.dumps(payload), encoding="utf8")
+          PY
+          gh api repos/novyxlabs/change-intelligence/dispatches --method POST --input /tmp/change-intelligence-feedback-dispatch.json
