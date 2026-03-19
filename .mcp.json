@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "novyx-mcp": {
+      "command": "uvx",
+      "args": ["novyx-mcp"]
+    }
+  }
+}
