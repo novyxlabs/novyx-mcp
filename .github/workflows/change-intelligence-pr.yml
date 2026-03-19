@@ -1,0 +1,47 @@
+name: Change Intelligence PR Dispatch
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Change Intelligence
+        env:
+          GH_TOKEN: ${{ secrets.CHANGE_INTELLIGENCE_DISPATCH_TOKEN }}
+          OWNER_REPO: ${{ github.repository }}
+          ACTION_NAME: ${{ github.event.action }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          MERGED_AT: ${{ github.event.pull_request.merged_at }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = {
+              "event_type": "analyze-pr",
+              "client_payload": {
+                  "action": os.environ["ACTION_NAME"],
+                  "repository": {"full_name": os.environ["OWNER_REPO"]},
+                  "pull_request": {
+                      "number": int(os.environ["PR_NUMBER"]),
+                      "title": os.environ.get("PR_TITLE", ""),
+                      "html_url": os.environ.get("PR_URL", ""),
+                      "merged_at": os.environ.get("MERGED_AT") or None,
+                      "head": {"sha": os.environ.get("HEAD_SHA", "")},
+                  },
+              },
+          }
+          Path("/tmp/change-intelligence-dispatch.json").write_text(json.dumps(payload), encoding="utf8")
+          PY
+          gh api repos/novyxlabs/change-intelligence/dispatches --method POST --input /tmp/change-intelligence-dispatch.json
