@@ -2,7 +2,7 @@
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "name": "novyx-mcp",
   "version": "2.2.0",
-  "description": "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, knowledge graph, eval, governed actions, threat intelligence, auto-defense, and correlation. Every customer makes every other customer safer. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
+  "description": "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, knowledge graph, eval, governed actions, threat intelligence, auto-defense, and correlation. Every Novyx customer makes every other customer safer. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
   "repository": {
     "type": "git",
     "url": "https://github.com/novyxlabs/novyx-mcp"

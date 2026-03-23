@@ -1,7 +1,7 @@
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
-Persistent memory for AI agents. 91 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Install the server, add a section to your `CLAUDE.md`, and every Claude Code session shares context — turning isolated agents into a coordinated team. Includes governed actions, threat intelligence, auto-defense, cross-tenant correlation, context spaces, replay, cortex, and eval baselines. Every customer makes every other customer safer.
+Persistent memory for AI agents. 91 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Install the server, add a section to your `CLAUDE.md`, and every Claude Code session shares context — turning isolated agents into a coordinated team. Includes governed actions, threat intelligence, auto-defense, cross-tenant correlation, context spaces, replay, cortex, and eval baselines. Every Novyx customer makes every other customer safer.
 
 ## Install
 

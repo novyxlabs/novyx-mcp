@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "novyx-mcp"
 version = "2.2.0"
-description = "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, knowledge graph, eval, governed actions, threat intelligence, auto-defense, and correlation. Every customer makes every other customer safer. Works locally (zero config) or with Novyx Cloud."
+description = "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, knowledge graph, eval, governed actions, threat intelligence, auto-defense, and correlation. Every Novyx customer makes every other customer safer. Works locally (zero config) or with Novyx Cloud."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
