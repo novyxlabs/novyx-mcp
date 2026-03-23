@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "novyx-mcp"
 version = "2.2.0"
-description = "Persistent memory for AI agents. 72 MCP tools for remember, recall, rollback, audit, traces, eval, knowledge graph, context spaces, cortex, replay, governed actions, and more. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally (zero config) or with Novyx Cloud."
+description = "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, traces, eval, knowledge graph, context spaces, cortex, replay, governed actions, and more. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally (zero config) or with Novyx Cloud."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [

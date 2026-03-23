@@ -2,7 +2,7 @@
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "name": "novyx-mcp",
   "version": "2.2.0",
-  "description": "Persistent memory for AI agents. 72 MCP tools for remember, recall, rollback, audit, knowledge graph, context spaces, eval, cortex, replay, actions, and more. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
+  "description": "Persistent memory for AI agents. 91 MCP tools for remember, recall, rollback, audit, knowledge graph, context spaces, eval, cortex, replay, actions, and more. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
   "repository": {
     "type": "git",
     "url": "https://github.com/novyxlabs/novyx-mcp"
