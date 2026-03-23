@@ -1,7 +1,7 @@
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
-Persistent memory for AI agents. 64 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Install the server, add a section to your `CLAUDE.md`, and every Claude Code session shares context — turning isolated agents into a coordinated team. Includes context spaces for multi-agent collaboration, replay for time-travel debugging, and cortex for autonomous memory intelligence.
+Persistent memory for AI agents. 72 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Install the server, add a section to your `CLAUDE.md`, and every Claude Code session shares context — turning isolated agents into a coordinated team. Includes context spaces for multi-agent collaboration, replay for time-travel debugging, cortex for autonomous memory intelligence, and governed actions with policy evaluation.
 
 ## Install
 
@@ -96,7 +96,7 @@ Stage, review, and merge memory changes before they go live.
 | `merge_branch` | Merge all approved drafts in a branch |
 | `reject_branch` | Reject all drafts in a branch |
 
-### Knowledge Graph (9 tools)
+### Knowledge Graph (11 tools)
 
 Store and query structured relationships between entities.
 
@@ -114,7 +114,7 @@ Store and query structured relationships between entities.
 | `delete_entity` | Delete an entity from the knowledge graph |
 | `supersede` | Mark one memory as superseding another |
 
-### Rollback & Audit (5 tools)
+### Rollback & Audit (6 tools)
 
 Cryptographic audit trail and point-in-time recovery.
 
@@ -125,6 +125,7 @@ Cryptographic audit trail and point-in-time recovery.
 | `rollback_history` | View past rollback operations |
 | `audit` | Get the audit trail of memory operations |
 | `audit_verify` | Verify the integrity of the cryptographic audit chain |
+| `audit_export` | Export the full audit log (JSON, CSV, or JSONL) |
 
 ### Context Spaces (6 tools)
 
@@ -174,9 +175,9 @@ Track multi-step agent workflows with cryptographic verification.
 | `trace_complete` | Mark a trace as complete |
 | `trace_verify` | Verify the integrity of a trace's step chain |
 
-### Eval (4 tools)
+### Eval (7 tools)
 
-Score and monitor memory quality over time.
+Score and monitor memory quality over time. Includes baseline regression testing.
 
 | Tool | Description |
 |------|-------------|
@@ -184,8 +185,11 @@ Score and monitor memory quality over time.
 | `eval_gate` | Gate a workflow on a minimum memory quality score |
 | `eval_history` | View past evaluation results |
 | `eval_drift` | Measure memory drift over a time window |
+| `eval_baseline_create` | Save a recall baseline for regression testing |
+| `eval_baselines` | List all saved eval baselines |
+| `eval_baseline_delete` | Delete an eval baseline |
 
-### Cortex (4 tools — Pro+)
+### Cortex (5 tools — Pro+)
 
 Autonomous memory intelligence — consolidation, reinforcement, and insights.
 
@@ -195,8 +199,9 @@ Autonomous memory intelligence — consolidation, reinforcement, and insights.
 | `cortex_run` | Trigger a cortex cycle (consolidation + reinforcement) |
 | `cortex_insights` | Get AI-generated insights from memory patterns (Enterprise) |
 | `cortex_config` | View cortex configuration details |
+| `cortex_update_config` | Tune consolidation threshold, reinforcement boost, and decay rate |
 
-### Control (4 tools)
+### Control (7 tools)
 
 Governed actions with policy evaluation and approval workflows.
 
@@ -206,6 +211,9 @@ Governed actions with policy evaluation and approval workflows.
 | `approve_action` | Approve a pending action |
 | `check_policy` | Check what policies apply to a connector/environment |
 | `action_history` | View past action submissions and outcomes |
+| `action_submit` | Submit an action for governed execution |
+| `action_status` | Get the status of a specific action |
+| `explain_action` | Get the full causal chain for why an action was blocked/approved |
 
 ### Utilities (3 tools)
 

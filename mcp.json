@@ -1,11 +1,11 @@
 {
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "name": "novyx-mcp",
-  "version": "2.1.5",
-  "description": "Persistent memory for AI agents. 23 MCP tools for remember, recall, rollback, audit, knowledge graph, and context spaces. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
+  "version": "2.2.0",
+  "description": "Persistent memory for AI agents. 72 MCP tools for remember, recall, rollback, audit, knowledge graph, context spaces, eval, cortex, replay, actions, and more. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/novyxlabs/novyx-mcp",
+    "url": "https://github.com/novyxlabs/novyx-mcp"
   },
   "homepage": "https://novyxlabs.com",
   "license": "MIT",
@@ -34,7 +34,7 @@
   "packages": {
     "pypi": {
       "name": "novyx-mcp",
-      "version": "2.1.5",
+      "version": "2.2.0",
       "extras": {
         "local": "Includes sentence-transformers for higher quality local embeddings"
       }
@@ -48,6 +48,7 @@
     {"name": "memory", "description": "Get a single memory by ID"},
     {"name": "rollback", "description": "Undo operations after a timestamp (supports relative time like '5 minutes ago')"},
     {"name": "audit", "description": "View the full audit trail of memory operations"},
+    {"name": "audit_export", "description": "Export the full audit log (JSON, CSV, or JSONL)"},
     {"name": "stats", "description": "Get memory statistics including count, importance distribution, and tags"},
     {"name": "link", "description": "Create a relationship link between two memories"},
     {"name": "triple", "description": "Add a subject-predicate-object triple to the knowledge graph"},
@@ -63,7 +64,14 @@
     {"name": "replay_snapshot", "description": "Get a point-in-time snapshot of all memories (cloud only)"},
     {"name": "replay_lifecycle", "description": "View the full lifecycle of a single memory (cloud only)"},
     {"name": "replay_diff", "description": "Compare memory state between two timestamps (cloud only)"},
-    {"name": "cortex_status", "description": "Check background analysis status (cloud only)"}
+    {"name": "cortex_status", "description": "Check background analysis status (cloud only)"},
+    {"name": "cortex_update_config", "description": "Tune consolidation, reinforcement, and decay settings"},
+    {"name": "action_submit", "description": "Submit an action for governed execution"},
+    {"name": "action_status", "description": "Get the status of a specific action"},
+    {"name": "explain_action", "description": "Get the full causal chain for an action decision"},
+    {"name": "eval_baseline_create", "description": "Save a recall baseline for regression testing"},
+    {"name": "eval_baselines", "description": "List all saved eval baselines"},
+    {"name": "eval_baseline_delete", "description": "Delete an eval baseline"}
   ],
   "resources": [
     {"name": "memory_stats", "description": "Current memory statistics"},
