@@ -215,6 +215,51 @@ Governed actions with policy evaluation and approval workflows.
 | `action_status` | Get the status of a specific action |
 | `explain_action` | Get the full causal chain for why an action was blocked/approved |
 
+### Threat Intelligence (7 tools — Pro+)
+
+Cross-tenant attack detection. Every Novyx customer makes every other customer safer.
+
+| Tool | Description |
+|------|-------------|
+| `threat_feed` | Get the anonymized threat intelligence feed |
+| `threat_stats` | Get overall threat intelligence statistics |
+| `threat_record` | Record a threat event for cross-tenant intelligence |
+| `threat_trending` | Get trending threat signatures |
+| `threat_match` | Find known signatures matching a threat event |
+| `threat_signature` | Get a specific threat signature by ID |
+| `threat_mitigate` | Mark a threat signature as mitigated |
+
+### Auto Defense (7 tools — Pro+)
+
+Self-healing security — deploy, measure, and auto-tune defense rules.
+
+| Tool | Description |
+|------|-------------|
+| `defense_list` | List active auto-deployed defense rules |
+| `defense_deploy` | Deploy a defense rule against a threat signature |
+| `defense_remove` | Remove a deployed defense rule |
+| `defense_effectiveness` | Measure the effectiveness of a deployed defense |
+| `defense_record_block` | Record that a defense blocked a threat |
+| `defense_stats` | Get overall defense statistics |
+| `defense_recommend` | Get a recommended defense strategy for a signature |
+
+### Correlation (4 tools — Pro+)
+
+Detect coordinated attacks across tenants and campaigns.
+
+| Tool | Description |
+|------|-------------|
+| `correlate_threat` | Check if a threat correlates with attacks on other tenants |
+| `detect_campaign` | Detect an ongoing attack campaign |
+| `coordinated_attack_check` | Check if multiple events are a coordinated attack |
+| `related_signatures` | Find threat signatures related to a given signature |
+
+### Streams (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `stream_status` | Get real-time memory stream connection status |
+
 ### Utilities (3 tools)
 
 | Tool | Description |
