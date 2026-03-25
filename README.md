@@ -58,7 +58,7 @@ Add to your Cursor MCP settings:
 claude mcp add novyx-memory -- python -m novyx_mcp
 ```
 
-Set the `NOVYX_API_KEY` environment variable before starting Claude Code. Omit it to use local mode (SQLite, zero config).
+Set the `NOVYX_API_KEY` environment variable before starting Claude Code if you want Novyx Cloud features. Omit it to stay in local mode (SQLite, zero config).
 
 ### CLAUDE.md Integration
 
@@ -72,7 +72,7 @@ and status at the end of tasks. Check for context from other agents before
 starting new work.
 ```
 
-This turns isolated Claude Code sessions into a coordinated team — each session stores what it learned and checks what other sessions have done before starting work.
+This turns isolated Claude Code sessions into a coordinated team workflow — each session stores what it learned and checks what other sessions have done before starting new work.
 
 ## Available Tools
 
