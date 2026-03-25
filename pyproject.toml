@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "novyx-mcp"
 version = "2.2.0"
-description = "Persistent memory for AI agents. 91 MCP tools — core memory works locally (zero config SQLite), full surface (threat intel, auto-defense, correlation, governed actions) with Novyx Cloud. Every Novyx customer makes every other customer safer."
+description = "Persistent memory for AI agents. 91 MCP tools — core memory works locally with zero-config SQLite, while the full surface (threat intel, auto-defense, correlation, governed actions) runs through Novyx Cloud. Every Novyx customer makes every other customer safer."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
