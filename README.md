@@ -3,10 +3,10 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/novyx-mcp.svg)](https://pypi.org/project/novyx-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MCP Tools](https://img.shields.io/badge/MCP_tools-91-8b5cf6)](https://novyxlabs.com/mcp)
+[![MCP Tools](https://img.shields.io/badge/MCP_tools-107-8b5cf6)](https://novyxlabs.com/mcp)
 [![Demo](https://img.shields.io/badge/demo-novyxlabs.com-10b981)](https://novyxlabs.com/demo)
 
-Persistent memory for AI agents. 91 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero config (SQLite) for core memory operations, or connects to Novyx Cloud for the full surface including threat intelligence, auto-defense, correlation, governed actions, cortex, replay, and eval baselines. Every Novyx customer makes every other customer safer.
+Persistent memory for AI agents. 107 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero config (SQLite) for core memory operations, or connects to Novyx Cloud for the full surface including Runtime v2 agents/missions/capabilities, threat intelligence, auto-defense, correlation, governed actions, cortex, replay, and eval baselines. Every Novyx customer makes every other customer safer.
 
 ## Install
 
