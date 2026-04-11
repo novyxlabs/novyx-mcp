@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.5.1 (2026-04-11)
+
+### Fixed — Runtime v2 MCP tools were non-functional in 2.5.0
+
+The 29 Runtime v2 MCP tools (agents, missions, capabilities, checkpoints,
+interventions) shipped in 2.5.0 dispatched through `_call_backend_json`
+to 25 method names that did not exist on either `LocalBackend` or
+`CloudBackend`. Every Runtime v2 tool call returned
+`{"error": "'CloudBackend' object has no attribute '<method>'"}` to the
+caller. The MCP surface was advertised as 119 tools but only 90 actually
+worked.
+
+Root cause: Runtime v2 was added to `server.py` without adding the
+corresponding backend dispatch methods. The SDK had all 25 methods, so
+Python-SDK consumers were unaffected — only the MCP path was broken.
+Caught by Codex review on PR #6, not by tests, because the existing test
+suite exercised backend methods directly and never went through the
+MCP tool layer for Runtime v2.
+
+**Fix**:
+- `cloud_backend.py`: added 25 delegation methods covering agents,
+  missions, capabilities, checkpoints, and interventions. Each method
+  passes through to the corresponding `self._client.<method>()` on the
+  Novyx Python SDK.
+- `local_backend.py`: added 25 stub methods that raise `CloudFeatureError`
+  with an upgrade prompt. Runtime v2 orchestration state lives on the
+  Novyx Cloud API — local SQLite mode holds memory only.
+
+### Added — Backend dispatch guardrail test
+
+`tests/test_backend_dispatch.py` programmatically walks `server.py`,
+extracts every `_call_backend_json("<method>", ...)` call, and asserts
+each method is implemented on both `LocalBackend` and `CloudBackend`.
+This is a regression test for exactly this class of bug. Any future
+MCP tool that dispatches to a method name the backends don't implement
+will fail CI immediately, listing the specific missing methods. The
+same class of drift cannot ship again.
+
 ## 2.5.0 (2026-04-10)
 
 ### Added — Phase 1: Policy-as-Code MCP Tools
