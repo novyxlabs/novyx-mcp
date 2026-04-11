@@ -2,7 +2,7 @@
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "_warning": "The tools[] array in this file is a legacy catalog snapshot and does not reflect all 119 MCP tools shipped in novyx-mcp 2.5.1. The authoritative tool surface is the published PyPI package (novyx-mcp==2.5.1) and the @mcp.tool decorators in novyx_mcp/server.py.",
   "name": "novyx-mcp",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
   "packages": {
     "pypi": {
       "name": "novyx-mcp",
-      "version": "2.5.1",
+      "version": "2.5.2",
       "extras": {
         "local": "Includes sentence-transformers for higher quality local embeddings"
       }
