@@ -397,3 +397,106 @@ class CloudBackend:
 
     def stream_status(self) -> dict[str, Any]:
         return self._client.stream_status()
+
+    # ------------------------------------------------------------------
+    # Runtime v2: Agents (Pro+)
+    # ------------------------------------------------------------------
+
+    def create_agent(self, **kwargs: Any) -> dict[str, Any]:
+        name = kwargs.pop("name")
+        return self._client.create_agent(name, **kwargs)
+
+    def get_agent(self, agent_id: str) -> dict[str, Any]:
+        return self._client.get_agent(agent_id)
+
+    def list_agents(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.list_agents(**kwargs)
+
+    def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.update_agent(agent_id, **kwargs)
+
+    def delete_agent(self, agent_id: str) -> dict[str, Any]:
+        return self._client.delete_agent(agent_id)
+
+    # ------------------------------------------------------------------
+    # Runtime v2: Missions (Pro+)
+    # ------------------------------------------------------------------
+
+    def create_mission(self, **kwargs: Any) -> dict[str, Any]:
+        agent_id = kwargs.pop("agent_id")
+        goal = kwargs.pop("goal")
+        return self._client.create_mission(agent_id, goal, **kwargs)
+
+    def get_mission(self, mission_id: str) -> dict[str, Any]:
+        return self._client.get_mission(mission_id)
+
+    def list_missions(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.list_missions(**kwargs)
+
+    def update_mission(self, mission_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.update_mission(mission_id, **kwargs)
+
+    def delete_mission(self, mission_id: str) -> dict[str, Any]:
+        return self._client.delete_mission(mission_id)
+
+    def pause_mission(self, mission_id: str) -> dict[str, Any]:
+        return self._client.pause_mission(mission_id)
+
+    def resume_mission(self, mission_id: str) -> dict[str, Any]:
+        return self._client.resume_mission(mission_id)
+
+    def cancel_mission(self, mission_id: str) -> dict[str, Any]:
+        return self._client.cancel_mission(mission_id)
+
+    # ------------------------------------------------------------------
+    # Runtime v2: Capabilities (Pro+)
+    # ------------------------------------------------------------------
+
+    def create_capability(self, **kwargs: Any) -> dict[str, Any]:
+        name = kwargs.pop("name")
+        return self._client.create_capability(name, **kwargs)
+
+    def get_capability(self, capability_id: str) -> dict[str, Any]:
+        return self._client.get_capability(capability_id)
+
+    def list_capabilities(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.list_capabilities(**kwargs)
+
+    def update_capability(self, capability_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.update_capability(capability_id, **kwargs)
+
+    def delete_capability(self, capability_id: str) -> dict[str, Any]:
+        return self._client.delete_capability(capability_id)
+
+    # ------------------------------------------------------------------
+    # Runtime v2: Checkpoints (Pro+)
+    # ------------------------------------------------------------------
+
+    def create_checkpoint(self, **kwargs: Any) -> dict[str, Any]:
+        mission_id = kwargs.pop("mission_id")
+        return self._client.create_checkpoint(mission_id, **kwargs)
+
+    def get_checkpoint(self, checkpoint_id: str) -> dict[str, Any]:
+        return self._client.get_checkpoint(checkpoint_id)
+
+    def list_checkpoints(self, mission_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.list_checkpoints(mission_id, **kwargs)
+
+    def rollback_to_checkpoint(self, **kwargs: Any) -> dict[str, Any]:
+        mission_id = kwargs.pop("mission_id")
+        checkpoint_id = kwargs.pop("checkpoint_id")
+        return self._client.rollback_to_checkpoint(mission_id, checkpoint_id, **kwargs)
+
+    # ------------------------------------------------------------------
+    # Runtime v2: Interventions (Pro+)
+    # ------------------------------------------------------------------
+
+    def create_intervention(self, **kwargs: Any) -> dict[str, Any]:
+        intervention_type = kwargs.pop("intervention_type")
+        return self._client.create_intervention(intervention_type, **kwargs)
+
+    def get_intervention(self, intervention_id: str) -> dict[str, Any]:
+        return self._client.get_intervention(intervention_id)
+
+    def list_interventions(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.list_interventions(**kwargs)

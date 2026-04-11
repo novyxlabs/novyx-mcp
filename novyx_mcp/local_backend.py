@@ -1635,6 +1635,113 @@ class LocalBackend:
         return {}
 
     # ------------------------------------------------------------------
+    # Runtime v2 — Agents / Missions / Capabilities / Checkpoints /
+    # Interventions all live on the Novyx Cloud API. Local SQLite mode
+    # holds memory state only, not the orchestration graph. Every
+    # Runtime v2 method returns a friendly upgrade prompt.
+    # ------------------------------------------------------------------
+
+    def create_agent(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 agents")
+        return {}
+
+    def get_agent(self, agent_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 agents")
+        return {}
+
+    def list_agents(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 agents")
+        return {}
+
+    def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 agents")
+        return {}
+
+    def delete_agent(self, agent_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 agents")
+        return {}
+
+    def create_mission(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def get_mission(self, mission_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def list_missions(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def update_mission(self, mission_id: str, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def delete_mission(self, mission_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def pause_mission(self, mission_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def resume_mission(self, mission_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def cancel_mission(self, mission_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 missions")
+        return {}
+
+    def create_capability(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 capability packs")
+        return {}
+
+    def get_capability(self, capability_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 capability packs")
+        return {}
+
+    def list_capabilities(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 capability packs")
+        return {}
+
+    def update_capability(self, capability_id: str, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 capability packs")
+        return {}
+
+    def delete_capability(self, capability_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 capability packs")
+        return {}
+
+    def create_checkpoint(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 checkpoints")
+        return {}
+
+    def get_checkpoint(self, checkpoint_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 checkpoints")
+        return {}
+
+    def list_checkpoints(self, mission_id: str, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 checkpoints")
+        return {}
+
+    def rollback_to_checkpoint(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 checkpoints")
+        return {}
+
+    def create_intervention(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 interventions")
+        return {}
+
+    def get_intervention(self, intervention_id: str) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 interventions")
+        return {}
+
+    def list_interventions(self, **kwargs: Any) -> dict[str, Any]:
+        self._cloud_only("Runtime v2 interventions")
+        return {}
+
+    # ------------------------------------------------------------------
     # Maintenance
     # ------------------------------------------------------------------
 
