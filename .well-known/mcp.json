@@ -1,7 +1,7 @@
 {
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "name": "novyx-mcp",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
   "packages": {
     "pypi": {
       "name": "novyx-mcp",
-      "version": "2.5.1",
+      "version": "2.5.2",
       "extras": {
         "local": "Includes sentence-transformers for higher quality local embeddings"
       }

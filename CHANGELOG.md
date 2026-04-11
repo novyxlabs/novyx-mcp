@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.5.2 (2026-04-11)
+
+### Fixed — SDK lower bound was too loose
+
+`pyproject.toml` declared `novyx>=2.0.0`, but `cloud_backend.py` delegates
+directly to Runtime v2 SDK methods (`create_agent`, `create_mission`,
+`create_capability`, `create_checkpoint`, `create_intervention`, and 20
+others). Those methods first landed in `novyx==3.1.0`. Users who had
+`novyx-mcp==2.5.1` installed alongside an older-but-valid `novyx<3.1.0`
+would still get `AttributeError` on every Runtime v2 tool call — the
+2.5.1 fix was only complete if pip resolved `novyx` to a recent enough
+version.
+
+Raised the lower bound to `novyx>=3.4.0` — the first non-yanked SDK
+release after the 3.3.0/3.3.1 version-honesty yanks, and the version
+`novyx-mcp` 2.5.1+ was tested against.
+
+Caught by a second post-merge review of the 2.5.1 fix.
+
 ## 2.5.1 (2026-04-11)
 
 ### Fixed — Runtime v2 MCP tools were non-functional in 2.5.0

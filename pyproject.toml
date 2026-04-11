@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novyx-mcp"
-version = "2.5.1"
+version = "2.5.2"
 description = "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud."
 readme = "README.md"
 license = {text = "MIT"}
@@ -41,7 +41,14 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "novyx>=2.0.0",
+    # novyx>=3.4.0 is required because cloud_backend delegates directly
+    # to Runtime v2 SDK methods (create_agent, create_mission,
+    # create_capability, create_checkpoint, create_intervention, and the
+    # 20 other Runtime v2 methods). Those methods first landed in
+    # novyx 3.1.0, but 3.4.0 is the first non-yanked version after the
+    # 3.3.0/3.3.1 version-honesty yanks and is the version novyx-mcp
+    # 2.5.1+ was tested against.
+    "novyx>=3.4.0",
     "mcp>=1.2.0",
 ]
 
