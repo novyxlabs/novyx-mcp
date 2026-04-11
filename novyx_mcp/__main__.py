@@ -1,7 +1,8 @@
-from novyx_mcp.server import mcp
+from novyx_mcp.server import mcp, startup_health_check
 
 
 def main():
+    startup_health_check()
     mcp.run()
 
 

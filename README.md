@@ -1,12 +1,7 @@
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
-[![PyPI version](https://img.shields.io/pypi/v/novyx-mcp.svg)](https://pypi.org/project/novyx-mcp/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![MCP Tools](https://img.shields.io/badge/MCP_tools-107-8b5cf6)](https://novyxlabs.com/mcp)
-[![Demo](https://img.shields.io/badge/demo-novyxlabs.com-10b981)](https://novyxlabs.com/demo)
-
-Persistent memory for AI agents. 107 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero config (SQLite) for core memory operations, or connects to Novyx Cloud for the full surface including Runtime v2 agents/missions/capabilities, threat intelligence, auto-defense, correlation, governed actions, cortex, replay, and eval baselines. Every Novyx customer makes every other customer safer.
+Persistent memory + governance for AI agents. 119 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero config (SQLite) for core memory operations, or connects to Novyx Cloud for the full surface including policy-as-code, approval workflows, governance dashboard, Runtime v2 agents/missions/capabilities, threat intelligence, auto-defense, correlation, governed actions, cortex, replay, and eval baselines. Every Novyx customer makes every other customer safer.
 
 ## Install
 
@@ -74,204 +69,216 @@ starting new work.
 
 This turns isolated Claude Code sessions into a coordinated team — each session stores what it learned and checks what other sessions have done before starting work.
 
+## Canonical Workflow: Draft, Review, Merge
+
+This is the highest-signal Novyx workflow for coding agents:
+
+1. The agent learns something important, but uses `draft_memory(..., branch_id="feature-x")` instead of writing directly.
+2. Review the whole branch with `memory_branch("feature-x")`.
+3. Use `draft_diff` when one draft needs a closer look.
+4. Merge the whole branch with `merge_branch("feature-x")`, or reject it with `reject_branch("feature-x")`.
+
+Example:
+
+```text
+draft_memory(
+  observation="Deploys fail if REDIS_URL is unset in staging",
+  tags=["ops", "staging"],
+  importance=8,
+  branch_id="staging-fixes"
+)
+
+memory_branch("staging-fixes")
+
+draft_diff("drf_abc123")
+
+merge_branch("staging-fixes")
+```
+
+This keeps agent memory reviewable instead of letting every session write directly into permanent state.
+
 ## Available Tools
 
-### Core Memory (5 tools)
+**119 tools across 11 categories.** Memory-only tools work in local SQLite mode (zero config, no API key). Cloud-only tools require a Novyx API key.
+
+### Core Memory (19 tools)
+
+Store, recall, supersede, and audit individual memories.
 
 | Tool | Description |
 |------|-------------|
-| `remember` | Store a memory observation with optional tags, importance, context, and TTL |
-| `recall` | Search memories semantically using natural language |
-| `forget` | Delete a memory by UUID |
+| `remember` | Store a memory observation with tags, importance, context, TTL |
+| `recall` | Semantic search using natural language |
 | `list_memories` | List stored memories with optional tag filtering |
-| `memory_stats` | Get memory statistics (total count, average importance, etc.) |
-
-### Draft Workflow (7 tools)
-
-Stage, review, and merge memory changes before they go live.
-
-| Tool | Description |
-|------|-------------|
-| `draft_memory` | Create a draft memory for review before committing |
-| `memory_drafts` | List pending drafts, optionally filtered by status or branch |
-| `draft_diff` | Compare a draft against existing memories |
-| `merge_draft` | Approve and commit a draft into live memory |
-| `reject_draft` | Reject a draft with an optional reason |
-| `memory_branch` | View all drafts in a branch |
-| `merge_branch` | Merge all approved drafts in a branch |
-| `reject_branch` | Reject all drafts in a branch |
-
-### Knowledge Graph (11 tools)
-
-Store and query structured relationships between entities.
-
-| Tool | Description |
-|------|-------------|
-| `add_triple` | Add a knowledge graph triple (subject -> predicate -> object) |
-| `query_triples` | Query knowledge graph triples with filters |
-| `delete_triple` | Delete a triple by ID |
+| `memory_stats` | Total count, average importance, conflict count |
+| `memory_health` | Health score, stale memory count, contradiction count |
+| `forget` | Delete a memory by UUID |
+| `supersede` | Replace a memory with a new version, preserving history |
 | `link_memories` | Create a directed link between two memories |
-| `unlink` | Remove a link between two memories |
-| `get_links` | Get all links for a memory, optionally filtered by relation |
-| `graph_edges` | Query graph edges with filtering |
-| `list_entities` | List entities in the knowledge graph |
-| `get_entity` | Get details for a specific entity |
-| `delete_entity` | Delete an entity from the knowledge graph |
-| `supersede` | Mark one memory as superseding another |
+| `unlink` | Remove a link between memories |
+| `get_links` | Retrieve all links for a memory |
+| `add_triple` | Add a knowledge graph triple (subject → predicate → object) |
+| `query_triples` | Query knowledge graph triples with filters |
+| `delete_triple` | Remove a knowledge graph triple |
+| `get_entity` / `list_entities` / `delete_entity` | Knowledge graph entity CRUD |
+| `graph_edges` | List edges between memories or entities |
+| `audit` | Get the cryptographic audit trail |
+| `audit_export` / `audit_verify` | Export and verify the audit chain |
 
-### Rollback & Audit (6 tools)
+### Memory Drafts & Branches (8 tools)
 
-Cryptographic audit trail and point-in-time recovery.
+Stage memory changes for review before committing.
+
+| Tool | Description |
+|------|-------------|
+| `draft_memory` | Create a reviewable draft before writing to canonical memory |
+| `memory_drafts` | List open, merged, or rejected drafts |
+| `draft_diff` | Show field-level changes before merging a draft |
+| `merge_draft` / `reject_draft` | Merge or reject an individual draft |
+| `memory_branch` | Review a whole branch/session of drafts at once |
+| `merge_branch` / `reject_branch` | Merge or reject every open draft in a branch |
+
+### Rollback (3 tools)
+
+Time-travel restore — undo agent mistakes.
 
 | Tool | Description |
 |------|-------------|
 | `rollback` | Rollback memory to a point in time (supports dry run) |
-| `rollback_preview` | Preview what a rollback would change before executing |
-| `rollback_history` | View past rollback operations |
-| `audit` | Get the audit trail of memory operations |
-| `audit_verify` | Verify the integrity of the cryptographic audit chain |
-| `audit_export` | Export the full audit log (JSON, CSV, or JSONL) |
+| `rollback_preview` | Preview what a rollback would change |
+| `rollback_history` | List all prior rollback operations |
 
-### Context Spaces (6 tools)
+### Context Spaces (8 tools)
 
 Multi-agent collaboration — shared memory with fine-grained permissions.
 
 | Tool | Description |
 |------|-------------|
-| `create_space` | Create a shared context space for multi-agent collaboration |
-| `list_spaces` | List all context spaces you own or have access to |
-| `space_memories` | Search or list memories within a specific context space |
-| `update_space` | Update space settings (description, allowed agents, tags) |
-| `delete_space` | Delete a context space and disassociate its memories |
-| `share_space` | Share a context space with another user by email |
+| `create_space` / `update_space` / `delete_space` | Context space CRUD |
+| `list_spaces` | List spaces you own or have access to |
+| `space_memories` | Search or list memories within a space |
+| `share_space` | Share a space by email with permission level |
+| `shared_contexts` | List spaces shared with you |
+| `accept_shared_context` / `revoke_shared_context` | Accept invites or revoke access |
+| `context_now` | Get the current context state for a space |
 
-### Sharing (3 tools)
+### Novyx Control — Governance (10 tools)
 
-Share memory context across agents and users.
+Policy-as-code, approval workflows, and governed actions. New in Phase 1-5 (v2.5.0).
+
+| Tool | Description | Tier |
+|------|-------------|------|
+| `create_policy` | Create a custom YAML policy with regex rules and severities | Starter+ |
+| `list_policies` | List all active policies (built-in + custom) | All |
+| `delete_policy` | Disable a custom policy | Starter+ |
+| `check_policy` | Check the current Control policy profile | All |
+| `action_submit` | Submit an action for policy evaluation | All |
+| `action_status` | Get the status of a submitted action | All |
+| `action_history` | List recent governed actions | All |
+| `explain_action` | Get the full causal chain for an action | All |
+| `list_pending` | List actions awaiting human approval | All |
+| `approve_action` | Approve or deny a pending action | All |
+
+### Runtime v2 — Agent Orchestration (29 tools)
+
+First-class agents, missions, capability packs, checkpoints, and human interventions.
+
+| Category | Tools |
+|----------|-------|
+| **Agents** | `create_agent`, `get_agent`, `list_agents`, `update_agent`, `delete_agent` |
+| **Missions** | `create_mission`, `get_mission`, `list_missions`, `update_mission`, `delete_mission`, `pause_mission`, `resume_mission`, `cancel_mission` |
+| **Capabilities** | `create_capability`, `get_capability`, `list_capabilities`, `update_capability`, `delete_capability` |
+| **Checkpoints** | `create_checkpoint`, `get_checkpoint`, `list_checkpoints`, `rollback_to_checkpoint` |
+| **Interventions** | `create_intervention`, `get_intervention`, `list_interventions` |
+
+Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
+
+### Threat Intelligence (9 tools — Pro+)
+
+Detect, signature, and correlate adversarial activity across agents.
 
 | Tool | Description |
 |------|-------------|
-| `accept_shared_context` | Accept a shared context invitation by token |
-| `shared_contexts` | List all shared context tokens |
-| `revoke_shared_context` | Revoke a shared context token |
+| `threat_feed` | Subscribe to the threat intelligence feed |
+| `threat_record` | Log a threat observation |
+| `threat_match` | Match an event against known signatures |
+| `threat_signature` | Create or query a threat signature |
+| `threat_mitigate` | Apply a mitigation for a known threat |
+| `threat_trending` | Trending threats over time |
+| `threat_stats` | Aggregate threat statistics |
+| `correlate_threat` | Correlate a single event across the chain |
+| `coordinated_attack_check` | Detect coordinated multi-agent attack patterns |
+| `detect_campaign` | Detect long-running threat campaigns |
+| `related_signatures` | Find signatures related to a given threat |
 
-### Replay (7 tools — Pro+)
+### Auto-Defense (7 tools — Pro+)
+
+Deploy and tune automated defensive rules.
+
+| Tool | Description |
+|------|-------------|
+| `defense_deploy` | Deploy a new defense rule |
+| `defense_list` | List all active defenses |
+| `defense_remove` | Remove a defense rule |
+| `defense_recommend` | Get AI-recommended defenses for current threats |
+| `defense_effectiveness` | Measure how effective a defense has been |
+| `defense_record_block` | Log a successful block by a defense |
+| `defense_stats` | Aggregate defense performance stats |
+
+### Replay (6 tools — Pro+)
 
 Time-travel debugging — inspect how memory changed over time.
 
 | Tool | Description |
 |------|-------------|
-| `replay_timeline` | Get a chronological timeline of memory operations |
-| `replay_snapshot` | Reconstruct memory state at a specific point in time |
+| `replay_timeline` | Chronological timeline of memory operations |
+| `replay_snapshot` | Reconstruct memory state at a point in time |
 | `replay_lifecycle` | Trace the full lifecycle of a single memory |
-| `replay_diff` | Compare memory state between two points in time |
-| `replay_memory` | Replay the full history of a specific memory |
-| `replay_recall` | Run a recall query against memory state at a past timestamp |
-| `replay_memory_drift` | Measure how memory changed between two timestamps |
-
-### Execution Tracing (4 tools)
-
-Track multi-step agent workflows with cryptographic verification.
-
-| Tool | Description |
-|------|-------------|
-| `trace_create` | Create a new execution trace |
-| `trace_step` | Add a step to an active trace |
-| `trace_complete` | Mark a trace as complete |
-| `trace_verify` | Verify the integrity of a trace's step chain |
+| `replay_diff` | Compare memory state between two points |
+| `replay_memory` | Replay a single memory's history |
+| `replay_memory_drift` | Show how a memory drifted over time |
+| `replay_recall` | Replay a recall query as it would have answered then |
 
 ### Eval (7 tools)
 
-Score and monitor memory quality over time. Includes baseline regression testing.
+Memory health evaluation and CI/CD gates.
 
-| Tool | Description |
-|------|-------------|
-| `eval_run` | Run a memory quality evaluation |
-| `eval_gate` | Gate a workflow on a minimum memory quality score |
-| `eval_history` | View past evaluation results |
-| `eval_drift` | Measure memory drift over a time window |
-| `eval_baseline_create` | Save a recall baseline for regression testing |
-| `eval_baselines` | List all saved eval baselines |
-| `eval_baseline_delete` | Delete an eval baseline |
+| Tool | Description | Tier |
+|------|-------------|------|
+| `eval_run` | Run a full memory health evaluation | All |
+| `eval_history` | Get historical eval scores | All |
+| `eval_drift` | Detect drift since the last baseline | All |
+| `eval_gate` | Pass/fail gate for CI/CD pipelines | Pro+ |
+| `eval_baseline_create` / `eval_baselines` / `eval_baseline_delete` | Baseline CRUD |
 
-### Cortex (5 tools — Pro+)
+### Cortex (4 tools — Pro+)
 
 Autonomous memory intelligence — consolidation, reinforcement, and insights.
 
 | Tool | Description |
 |------|-------------|
 | `cortex_status` | Check cortex configuration and last run stats |
+| `cortex_config` / `cortex_update_config` | Get/update cortex configuration |
 | `cortex_run` | Trigger a cortex cycle (consolidation + reinforcement) |
 | `cortex_insights` | Get AI-generated insights from memory patterns (Enterprise) |
-| `cortex_config` | View cortex configuration details |
-| `cortex_update_config` | Tune consolidation threshold, reinforcement boost, and decay rate |
 
-### Control (7 tools)
+### Traces (4 tools)
 
-Governed actions with policy evaluation and approval workflows.
+Sentinel trace logging for full agent step audits.
 
 | Tool | Description |
 |------|-------------|
-| `list_pending` | List actions awaiting approval |
-| `approve_action` | Approve a pending action |
-| `check_policy` | Check what policies apply to a connector/environment |
-| `action_history` | View past action submissions and outcomes |
-| `action_submit` | Submit an action for governed execution |
-| `action_status` | Get the status of a specific action |
-| `explain_action` | Get the full causal chain for why an action was blocked/approved |
+| `trace_create` | Start a new trace |
+| `trace_step` | Append a step to a trace |
+| `trace_complete` | Finalize a trace |
+| `trace_verify` | Cryptographically verify a trace |
 
-### Threat Intelligence (7 tools — Pro+)
-
-Cross-tenant attack detection. Every Novyx customer makes every other customer safer.
+### Operational (4 tools)
 
 | Tool | Description |
 |------|-------------|
-| `threat_feed` | Get the anonymized threat intelligence feed |
-| `threat_stats` | Get overall threat intelligence statistics |
-| `threat_record` | Record a threat event for cross-tenant intelligence |
-| `threat_trending` | Get trending threat signatures |
-| `threat_match` | Find known signatures matching a threat event |
-| `threat_signature` | Get a specific threat signature by ID |
-| `threat_mitigate` | Mark a threat signature as mitigated |
-
-### Auto Defense (7 tools — Pro+)
-
-Self-healing security — deploy, measure, and auto-tune defense rules.
-
-| Tool | Description |
-|------|-------------|
-| `defense_list` | List active auto-deployed defense rules |
-| `defense_deploy` | Deploy a defense rule against a threat signature |
-| `defense_remove` | Remove a deployed defense rule |
-| `defense_effectiveness` | Measure the effectiveness of a deployed defense |
-| `defense_record_block` | Record that a defense blocked a threat |
-| `defense_stats` | Get overall defense statistics |
-| `defense_recommend` | Get a recommended defense strategy for a signature |
-
-### Correlation (4 tools — Pro+)
-
-Detect coordinated attacks across tenants and campaigns.
-
-| Tool | Description |
-|------|-------------|
-| `correlate_threat` | Check if a threat correlates with attacks on other tenants |
-| `detect_campaign` | Detect an ongoing attack campaign |
-| `coordinated_attack_check` | Check if multiple events are a coordinated attack |
-| `related_signatures` | Find threat signatures related to a given signature |
-
-### Streams (1 tool)
-
-| Tool | Description |
-|------|-------------|
-| `stream_status` | Get real-time memory stream connection status |
-
-### Utilities (3 tools)
-
-| Tool | Description |
-|------|-------------|
-| `context_now` | Get current context (time, session, agent info) |
-| `dashboard` | Get a full dashboard summary of memory state |
-| `memory_health` | Check memory health score and diagnostics |
+| `dashboard` | Aggregated stats — usage, pressure, governance counts |
+| `stream_status` | Status of any active streams |
 
 ## Available Resources
 
@@ -294,7 +301,7 @@ Detect coordinated attacks across tenants and campaigns.
 
 ## Get an API Key
 
-Sign up at [novyxlabs.com](https://novyxlabs.com) to get your API key. The free tier includes 5,000 memories and 5,000 API calls per month.
+Sign up at [novyxlabs.com](https://novyxlabs.com) to get your API key. The free tier includes 5,000 memories and 5,000 API calls per month, including the draft-review-merge workflow.
 
 ## License
 

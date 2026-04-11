@@ -1,0 +1,18 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      NOVYX_API_KEY:
+        type: string
+        description: "Novyx API key. Optional — local SQLite mode works without it."
+    required: []
+  commandFunction:
+    |-
+    (config) => ({
+      command: "uvx",
+      args: ["novyx-mcp"],
+      env: {
+        ...(config.NOVYX_API_KEY ? { NOVYX_API_KEY: config.NOVYX_API_KEY } : {})
+      }
+    })

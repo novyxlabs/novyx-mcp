@@ -18,7 +18,6 @@ import re
 import struct
 from typing import Optional
 
-
 # Dimension matching Novyx Cloud (all-MiniLM-L6-v2)
 EMBEDDING_DIM = 384
 

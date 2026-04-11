@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 4
 
 SCHEMA_SQL = """
 -- Memory store
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS memories (
     updated_at    TEXT,
     embedding     BLOB,                -- packed float32 array
     expires_at    TEXT,
+    superseded_by TEXT,
     deleted       INTEGER DEFAULT 0
 );
 
@@ -98,6 +99,54 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
 CREATE INDEX IF NOT EXISTS idx_audit_operation ON audit_log(operation);
 
+-- Memory drafts
+CREATE TABLE IF NOT EXISTS memory_drafts (
+    draft_id          TEXT PRIMARY KEY,
+    branch_id         TEXT,
+    observation       TEXT NOT NULL,
+    context           TEXT,
+    tags              TEXT DEFAULT '[]',
+    importance        INTEGER DEFAULT 5,
+    confidence        REAL DEFAULT 1.0,
+    review_summary    TEXT DEFAULT '{}',
+    status            TEXT NOT NULL DEFAULT 'draft',
+    merged_memory_id  TEXT,
+    merged_at         TEXT,
+    rejected_at       TEXT,
+    rejection_reason  TEXT,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_drafts_status ON memory_drafts(status);
+CREATE INDEX IF NOT EXISTS idx_memory_drafts_updated ON memory_drafts(updated_at);
+CREATE INDEX IF NOT EXISTS idx_memory_drafts_branch ON memory_drafts(branch_id);
+
+-- Execution traces
+CREATE TABLE IF NOT EXISTS traces (
+    trace_id     TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'active',
+    metadata     TEXT DEFAULT '{}',
+    created_at   TEXT NOT NULL,
+    completed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_traces_status ON traces(status);
+
+-- Trace steps
+CREATE TABLE IF NOT EXISTS trace_steps (
+    step_id     TEXT PRIMARY KEY,
+    trace_id    TEXT NOT NULL REFERENCES traces(trace_id),
+    step_name   TEXT NOT NULL,
+    input_data  TEXT DEFAULT '{}',
+    output_data TEXT DEFAULT '{}',
+    status      TEXT NOT NULL DEFAULT 'completed',
+    created_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON trace_steps(trace_id);
+
 -- Schema versioning
 CREATE TABLE IF NOT EXISTS schema_version (
     version INTEGER NOT NULL
@@ -139,6 +188,66 @@ def init_db(db_path: Path) -> sqlite3.Connection:
 
 def _migrate(conn: sqlite3.Connection, from_version: int, to_version: int) -> None:
     """Run schema migrations between versions."""
-    # Future migrations go here as elif blocks
+    if from_version < 2 <= to_version:
+        conn.execute("ALTER TABLE memories ADD COLUMN superseded_by TEXT")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS memory_drafts (
+                draft_id          TEXT PRIMARY KEY,
+                observation       TEXT NOT NULL,
+                context           TEXT,
+                tags              TEXT DEFAULT '[]',
+                importance        INTEGER DEFAULT 5,
+                confidence        REAL DEFAULT 1.0,
+                review_summary    TEXT DEFAULT '{}',
+                status            TEXT NOT NULL DEFAULT 'draft',
+                merged_memory_id  TEXT,
+                merged_at         TEXT,
+                rejected_at       TEXT,
+                rejection_reason  TEXT,
+                created_at        TEXT NOT NULL,
+                updated_at        TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memory_drafts_status ON memory_drafts(status)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memory_drafts_updated ON memory_drafts(updated_at)"
+        )
+    if from_version < 3 <= to_version:
+        conn.execute("ALTER TABLE memory_drafts ADD COLUMN branch_id TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_memory_drafts_branch ON memory_drafts(branch_id)"
+        )
+    if from_version < 4 <= to_version:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS traces (
+                trace_id     TEXT PRIMARY KEY,
+                name         TEXT NOT NULL,
+                status       TEXT NOT NULL DEFAULT 'active',
+                metadata     TEXT DEFAULT '{}',
+                created_at   TEXT NOT NULL,
+                completed_at TEXT
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_traces_status ON traces(status)")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS trace_steps (
+                step_id     TEXT PRIMARY KEY,
+                trace_id    TEXT NOT NULL REFERENCES traces(trace_id),
+                step_name   TEXT NOT NULL,
+                input_data  TEXT DEFAULT '{}',
+                output_data TEXT DEFAULT '{}',
+                status      TEXT NOT NULL DEFAULT 'completed',
+                created_at  TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON trace_steps(trace_id)")
     conn.execute("UPDATE schema_version SET version = ?", (to_version,))
     conn.commit()

@@ -1,4 +1,4 @@
-__version__ = "2.1.5"
+__version__ = "2.5.0"
 
 from .server import mcp as create_server
 

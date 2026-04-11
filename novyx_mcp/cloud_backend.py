@@ -49,6 +49,33 @@ class CloudBackend:
     def stats(self) -> dict[str, Any]:
         return self._client.stats()
 
+    def draft_memory(self, observation: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.draft_memory(observation, **kwargs)
+
+    def memory_drafts(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.memory_drafts(**kwargs)
+
+    def memory_draft(self, draft_id: str) -> dict[str, Any]:
+        return self._client.memory_draft(draft_id)
+
+    def draft_diff(self, draft_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.draft_diff(draft_id, **kwargs)
+
+    def merge_draft(self, draft_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.merge_draft(draft_id, **kwargs)
+
+    def reject_draft(self, draft_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.reject_draft(draft_id, **kwargs)
+
+    def memory_branch(self, branch_id: str) -> dict[str, Any]:
+        return self._client.memory_branch(branch_id)
+
+    def merge_branch(self, branch_id: str) -> dict[str, Any]:
+        return self._client.merge_branch(branch_id)
+
+    def reject_branch(self, branch_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.reject_branch(branch_id, **kwargs)
+
     # ------------------------------------------------------------------
     # Rollback & Audit
     # ------------------------------------------------------------------
@@ -132,3 +159,241 @@ class CloudBackend:
 
     def cortex_insights(self, **kwargs: Any) -> dict[str, Any]:
         return self._client.cortex_insights(**kwargs)
+
+    def cortex_config(self) -> dict[str, Any]:
+        return self._client.cortex_config()
+
+    def cortex_update_config(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.cortex_update_config(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Supersede
+    # ------------------------------------------------------------------
+
+    def supersede(self, old_memory_id: str, new_memory_id: str) -> dict[str, Any]:
+        return self._client.supersede(old_memory_id, new_memory_id)
+
+    # ------------------------------------------------------------------
+    # Links (extended)
+    # ------------------------------------------------------------------
+
+    def unlink(self, source_id: str, target_id: str) -> dict[str, Any]:
+        return self._client.unlink(source_id, target_id)
+
+    def links(self, memory_id: str, *, relation: str | None = None) -> dict[str, Any]:
+        return self._client.links(memory_id, relation=relation)
+
+    def edges(self, *, memory_id: str | None = None, relation: str | None = None,
+              direction: str = "both", limit: int = 100) -> dict[str, Any]:
+        return self._client.edges(memory_id=memory_id, relation=relation,
+                                  direction=direction, limit=limit)
+
+    # ------------------------------------------------------------------
+    # Knowledge Graph (extended)
+    # ------------------------------------------------------------------
+
+    def delete_triple(self, triple_id: str) -> dict[str, Any]:
+        return self._client.delete_triple(triple_id)
+
+    def entities(self, *, limit: int = 100, offset: int = 0,
+                 entity_type: str | None = None) -> dict[str, Any]:
+        return self._client.entities(limit=limit, offset=offset, entity_type=entity_type)
+
+    def entity(self, entity_id: str) -> dict[str, Any]:
+        return self._client.entity(entity_id)
+
+    def delete_entity(self, entity_id: str) -> dict[str, Any]:
+        return self._client.delete_entity(entity_id)
+
+    # ------------------------------------------------------------------
+    # Rollback (extended)
+    # ------------------------------------------------------------------
+
+    def rollback_preview(self, target: str) -> dict[str, Any]:
+        return self._client.rollback_preview(target)
+
+    def rollback_history(self, limit: int = 50) -> list[dict[str, Any]]:
+        return self._client.rollback_history(limit=limit)
+
+    # ------------------------------------------------------------------
+    # Audit (extended)
+    # ------------------------------------------------------------------
+
+    def audit_verify(self) -> dict[str, Any]:
+        return self._client.audit_verify()
+
+    # ------------------------------------------------------------------
+    # Traces
+    # ------------------------------------------------------------------
+
+    def trace_create(self, name: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.trace_create(name, **kwargs)
+
+    def trace_step(self, trace_id: str, step_name: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.trace_step(trace_id, step_name, **kwargs)
+
+    def trace_complete(self, trace_id: str) -> dict[str, Any]:
+        return self._client.trace_complete(trace_id)
+
+    def trace_verify(self, trace_id: str) -> dict[str, Any]:
+        return self._client.trace_verify(trace_id)
+
+    # ------------------------------------------------------------------
+    # Eval
+    # ------------------------------------------------------------------
+
+    def eval_run(self, *, min_score: float | None = None) -> dict[str, Any]:
+        return self._client.eval_run(min_score=min_score)
+
+    def eval_gate(self, min_score: float) -> dict[str, Any]:
+        return self._client.eval_gate(min_score)
+
+    def eval_history(self, *, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+        return self._client.eval_history(limit=limit, offset=offset)
+
+    def eval_drift(self, *, days: int = 7) -> dict[str, Any]:
+        return self._client.eval_drift(days=days)
+
+    # ------------------------------------------------------------------
+    # Replay (extended)
+    # ------------------------------------------------------------------
+
+    def replay_memory(self, memory_id: str) -> dict[str, Any]:
+        return self._client.replay_memory(memory_id)
+
+    def replay_recall(self, query: str, at: str, *, limit: int = 5) -> dict[str, Any]:
+        return self._client.replay_recall(query, at, limit=limit)
+
+    def replay_drift(self, from_ts: str, to_ts: str) -> dict[str, Any]:
+        return self._client.replay_drift(from_ts, to_ts)
+
+    # ------------------------------------------------------------------
+    # Context
+    # ------------------------------------------------------------------
+
+    def context_now(self) -> dict[str, Any]:
+        return self._client.context_now()
+
+    def dashboard(self) -> dict[str, Any]:
+        return self._client.dashboard()
+
+    # ------------------------------------------------------------------
+    # Sharing (extended)
+    # ------------------------------------------------------------------
+
+    def accept_shared_context(self, token: str) -> dict[str, Any]:
+        return self._client.accept_shared_context(token)
+
+    def shared_contexts(self) -> dict[str, Any]:
+        return self._client.shared_contexts()
+
+    def revoke_shared_context(self, token: str) -> dict[str, Any]:
+        return self._client.revoke_shared_context(token)
+
+    # ------------------------------------------------------------------
+    # Eval Baselines (Pro+)
+    # ------------------------------------------------------------------
+
+    def eval_baseline_create(self, query: str, expected_observation: str) -> dict[str, Any]:
+        return self._client.eval_baseline_create(query, expected_observation)
+
+    def eval_baselines(self) -> dict[str, Any]:
+        return self._client.eval_baselines()
+
+    def eval_baseline_delete(self, baseline_id: str) -> bool:
+        return self._client.eval_baseline_delete(baseline_id)
+
+    # ------------------------------------------------------------------
+    # Audit Export (Pro+)
+    # ------------------------------------------------------------------
+
+    def audit_export(self, format: str = "json") -> dict[str, Any]:
+        data = self._client.audit_export(format=format)
+        # SDK returns raw bytes; decode for MCP tool consumption
+        if isinstance(data, bytes):
+            import json as _json
+            try:
+                return _json.loads(data.decode())
+            except Exception:
+                return {"raw": data.decode(errors="replace")}
+        return data if isinstance(data, dict) else {"raw": str(data)}
+
+    # ------------------------------------------------------------------
+    # Explain Action (Inspectability)
+    # ------------------------------------------------------------------
+
+    def explain_action(self, action_id: str) -> dict[str, Any]:
+        return self._client.explain_action(action_id)
+
+    # ------------------------------------------------------------------
+    # Sentinel Intel — Threat Intelligence (Pro+)
+    # ------------------------------------------------------------------
+
+    def threat_feed(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.threat_feed(**kwargs)
+
+    def threat_stats(self) -> dict[str, Any]:
+        return self._client.threat_stats()
+
+    def threat_record(self, threat_event: dict) -> dict[str, Any]:
+        return self._client.threat_record(threat_event)
+
+    def threat_trending(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.threat_trending(**kwargs)
+
+    def threat_match(self, threat_event: dict, **kwargs: Any) -> dict[str, Any]:
+        return self._client.threat_match(threat_event, **kwargs)
+
+    def threat_signature(self, signature_id: str) -> dict[str, Any]:
+        return self._client.threat_signature(signature_id)
+
+    def threat_mitigate(self, signature_id: str) -> dict[str, Any]:
+        return self._client.threat_mitigate(signature_id)
+
+    # ------------------------------------------------------------------
+    # Sentinel Intel — Auto Defense (Pro+)
+    # ------------------------------------------------------------------
+
+    def defense_list(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.defense_list(**kwargs)
+
+    def defense_deploy(self, signature_id: str, rule_type: str, rule_config: dict | None = None) -> dict[str, Any]:
+        return self._client.defense_deploy(signature_id, rule_type, rule_config)
+
+    def defense_remove(self, defense_id: str) -> dict[str, Any]:
+        return self._client.defense_remove(defense_id)
+
+    def defense_effectiveness(self, defense_id: str) -> dict[str, Any]:
+        return self._client.defense_effectiveness(defense_id)
+
+    def defense_record_block(self, defense_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.defense_record_block(defense_id, **kwargs)
+
+    def defense_stats(self) -> dict[str, Any]:
+        return self._client.defense_stats()
+
+    def defense_recommend(self, signature_id: str) -> dict[str, Any]:
+        return self._client.defense_recommend(signature_id)
+
+    # ------------------------------------------------------------------
+    # Sentinel Intel — Correlation (Pro+)
+    # ------------------------------------------------------------------
+
+    def correlate_threat(self, threat_event: dict) -> dict[str, Any]:
+        return self._client.correlate_threat(threat_event)
+
+    def detect_campaign(self, **kwargs: Any) -> dict[str, Any]:
+        return self._client.detect_campaign(**kwargs)
+
+    def coordinated_attack_check(self, threat_events: list, **kwargs: Any) -> dict[str, Any]:
+        return self._client.coordinated_attack_check(threat_events, **kwargs)
+
+    def related_signatures(self, signature_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._client.related_signatures(signature_id, **kwargs)
+
+    # ------------------------------------------------------------------
+    # Streams
+    # ------------------------------------------------------------------
+
+    def stream_status(self) -> dict[str, Any]:
+        return self._client.stream_status()

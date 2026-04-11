@@ -1,11 +1,11 @@
 {
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
   "name": "novyx-mcp",
-  "version": "2.1.5",
-  "description": "Persistent memory for AI agents. 23 MCP tools for remember, recall, rollback, audit, knowledge graph, and context spaces. Pairs with CLAUDE.md to give Claude Code shared memory across sessions and agents. Works locally with zero config (SQLite) or connects to Novyx Cloud for teams.",
+  "version": "2.5.0",
+  "description": "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/novyxlabs/novyx-mcp",
+    "url": "https://github.com/novyxlabs/novyx-mcp"
   },
   "homepage": "https://novyxlabs.com",
   "license": "MIT",
@@ -34,7 +34,7 @@
   "packages": {
     "pypi": {
       "name": "novyx-mcp",
-      "version": "2.1.5",
+      "version": "2.5.0",
       "extras": {
         "local": "Includes sentence-transformers for higher quality local embeddings"
       }

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novyx-mcp"
-version = "2.4.0"
-description = "Persistent memory for AI agents. 107 MCP tools — core memory works locally (zero config SQLite), full surface (threat intel, auto-defense, correlation, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud."
+version = "2.5.0"
+description = "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -27,7 +27,7 @@ keywords = [
     "multi-agent",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
