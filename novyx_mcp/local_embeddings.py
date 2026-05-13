@@ -16,6 +16,7 @@ from __future__ import annotations
 import math
 import re
 import struct
+import hashlib
 from typing import Optional
 
 # Dimension matching Novyx Cloud (all-MiniLM-L6-v2)
@@ -95,8 +96,8 @@ class LocalEmbedder:
         vec = [0.0] * EMBEDDING_DIM
         for token in tokens:
             # Hash to bucket, use two hashes for sign (simhash-style)
-            bucket = hash(token) % EMBEDDING_DIM
-            sign = 1 if hash(token + "_sign") % 2 == 0 else -1
+            bucket = _stable_hash(token) % EMBEDDING_DIM
+            sign = 1 if _stable_hash(token + "_sign") % 2 == 0 else -1
             vec[bucket] += sign * 1.0
 
         # L2 normalize
@@ -122,3 +123,9 @@ def _tokenize(text: str) -> list[str]:
     """Simple tokenizer: lowercase, split on non-alpha, remove stop words."""
     words = re.findall(r"[a-z0-9]+", text.lower())
     return [w for w in words if w not in _STOP_WORDS and len(w) > 1]
+
+
+def _stable_hash(value: str) -> int:
+    """Stable 64-bit hash for persisted local embedding buckets."""
+    digest = hashlib.blake2b(value.encode("utf-8"), digest_size=8).digest()
+    return int.from_bytes(digest, "big", signed=False)

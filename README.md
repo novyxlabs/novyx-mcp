@@ -1,7 +1,12 @@
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
-Persistent memory + governance for AI agents. 119 MCP tools for **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero config (SQLite) for core memory operations, or connects to Novyx Cloud for the full surface including policy-as-code, approval workflows, governance dashboard, Runtime v2 agents/missions/capabilities, threat intelligence, auto-defense, correlation, governed actions, cortex, replay, and eval baselines. Every Novyx customer makes every other customer safer.
+Governed actions, shared memory, audit, and rollback for MCP clients such as
+**Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
+config (SQLite) for memory and policy-evaluation workflows, or connects to
+Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
+Runtime v2, threat intelligence, auto-defense, replay, and eval baselines.
+Every Novyx customer makes every other customer safer.
 
 ## Install
 
@@ -99,9 +104,10 @@ This keeps agent memory reviewable instead of letting every session write direct
 
 ## Available Tools
 
-**119 tools across 11 categories.** Memory-only tools work in local SQLite mode (zero config, no API key). Cloud-only tools require a Novyx API key.
+Memory-only tools work in local SQLite mode (zero config, no API key).
+Cloud-only governance and runtime tools require a Novyx API key.
 
-### Core Memory (19 tools)
+### Core Memory (20 tools)
 
 Store, recall, supersede, and audit individual memories.
 
@@ -148,7 +154,7 @@ Time-travel restore — undo agent mistakes.
 | `rollback_preview` | Preview what a rollback would change |
 | `rollback_history` | List all prior rollback operations |
 
-### Context Spaces (8 tools)
+### Context Spaces (10 tools)
 
 Multi-agent collaboration — shared memory with fine-grained permissions.
 
@@ -179,7 +185,7 @@ Policy-as-code, approval workflows, and governed actions. New in Phase 1-5 (v2.5
 | `list_pending` | List actions awaiting human approval | All |
 | `approve_action` | Approve or deny a pending action | All |
 
-### Runtime v2 — Agent Orchestration (29 tools)
+### Runtime v2 — Agent Orchestration (25 tools)
 
 First-class agents, missions, capability packs, checkpoints, and human interventions.
 
@@ -193,7 +199,7 @@ First-class agents, missions, capability packs, checkpoints, and human intervent
 
 Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
 
-### Threat Intelligence (9 tools — Pro+)
+### Threat Intelligence (11 tools — Pro+)
 
 Detect, signature, and correlate adversarial activity across agents.
 
@@ -225,7 +231,7 @@ Deploy and tune automated defensive rules.
 | `defense_record_block` | Log a successful block by a defense |
 | `defense_stats` | Aggregate defense performance stats |
 
-### Replay (6 tools — Pro+)
+### Replay (7 tools — Pro+)
 
 Time-travel debugging — inspect how memory changed over time.
 
@@ -251,7 +257,7 @@ Memory health evaluation and CI/CD gates.
 | `eval_gate` | Pass/fail gate for CI/CD pipelines | Pro+ |
 | `eval_baseline_create` / `eval_baselines` / `eval_baseline_delete` | Baseline CRUD |
 
-### Cortex (4 tools — Pro+)
+### Cortex (5 tools — Pro+)
 
 Autonomous memory intelligence — consolidation, reinforcement, and insights.
 
@@ -273,12 +279,13 @@ Sentinel trace logging for full agent step audits.
 | `trace_complete` | Finalize a trace |
 | `trace_verify` | Cryptographically verify a trace |
 
-### Operational (4 tools)
+### Operational (3 tools)
 
 | Tool | Description |
 |------|-------------|
 | `dashboard` | Aggregated stats — usage, pressure, governance counts |
 | `stream_status` | Status of any active streams |
+| `tool_health` | Introspect the MCP tool surface — status, category, description per tool (new in 2.7.0) |
 
 ## Available Resources
 

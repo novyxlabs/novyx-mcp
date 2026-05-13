@@ -1,5 +1,43 @@
 # Changelog
 
+## 2.7.1 (2026-04-20)
+
+### Fixed — per-category README counts
+
+- Corrected stale per-category tool counts in `README.md` that 2.7.0
+  shipped with (the README fix landed after the 2.7.0 tag, so the
+  PyPI long description rendered the wrong numbers):
+  - Core Memory 19 → 20
+  - Context Spaces 8 → 10
+  - Runtime v2 — Agent Orchestration 29 → 25
+  - Threat Intelligence 9 → 11
+  - Replay 6 → 7
+  - Cortex 4 → 5
+  - Operational 4 → 3 (and added the `tool_health` row)
+- No code changes vs 2.7.0. Registry, harness, and `tool_health` tool
+  are identical.
+
+## 2.7.0 (2026-04-20)
+
+### Added — MCP tool-surface honesty harness
+
+- Added `tool_health`, a machine-readable MCP introspection tool backed by
+  a canonical 120-tool registry with status, category, and description for
+  each tool.
+- Added a parametrized MCP surface test harness that exercises every declared
+  tool through the server layer, enforces registry parity for new tools, and
+  requires explicit minimum arguments for multi-argument tools.
+- Added cloud-path regression coverage for the Control tool family so
+  unconfigured cloud dependencies return structured `{error, setup|upgrade}`
+  envelopes instead of silent success shapes.
+
+### Fixed
+
+- `memory_health` now returns a structured error when backend stats fail
+  instead of reporting a false healthy/no-memory state.
+- Package, registry, README, and distribution metadata now consistently report
+  the 120-tool MCP surface.
+
 ## 2.5.2 (2026-04-11)
 
 ### Fixed — SDK lower bound was too loose

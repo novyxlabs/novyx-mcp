@@ -23,6 +23,7 @@ from .local_schema import init_db
 
 class CloudFeatureError(Exception):
     """Raised when a cloud-only feature is called in local mode."""
+
     pass
 
 
@@ -34,9 +35,7 @@ class LocalBackend:
     """
 
     def __init__(self, data_dir: str | None = None) -> None:
-        self._data_dir = Path(
-            data_dir or os.environ.get("NOVYX_DATA_DIR", "~/.novyx")
-        ).expanduser()
+        self._data_dir = Path(data_dir or os.environ.get("NOVYX_DATA_DIR", "~/.novyx")).expanduser()
         self._db_path = self._data_dir / "local.db"
         self._conn = init_db(self._db_path)
         self._lock = threading.Lock()
@@ -53,12 +52,27 @@ class LocalBackend:
         return str(uuid.uuid4())
 
     def _audit(self, operation: str, artifact_id: str, details: dict | None = None) -> None:
-        """Write an entry to the local audit trail."""
+        """Write an entry to the local audit trail with SHA-256 hash chain."""
+        import hashlib
+
+        entry_id = self._uuid()
+        timestamp = self._now()
+        details_json = json.dumps(details or {}, default=str)
+
+        # Get the previous hash for chaining
+        prev = self._conn.execute(
+            "SELECT entry_hash FROM audit_log ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        prev_hash = prev["entry_hash"] if prev and prev["entry_hash"] else "0" * 64
+
+        # Hash: prev_hash + entry content
+        payload = f"{prev_hash}:{entry_id}:{operation}:{artifact_id}:{timestamp}:{details_json}"
+        entry_hash = hashlib.sha256(payload.encode()).hexdigest()
+
         self._conn.execute(
-            "INSERT INTO audit_log (entry_id, operation, artifact_id, agent_id, timestamp, details) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (self._uuid(), operation, artifact_id, "local", self._now(),
-             json.dumps(details or {}, default=str)),
+            "INSERT INTO audit_log (entry_id, operation, artifact_id, agent_id, timestamp, details, entry_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (entry_id, operation, artifact_id, "local", timestamp, details_json, entry_hash),
         )
         self._conn.commit()
 
@@ -123,8 +137,8 @@ class LocalBackend:
 
     def _cloud_only(self, feature: str) -> None:
         raise CloudFeatureError(
-            f"{feature} is available with Novyx Cloud. "
-            f"Sign up free at novyxlabs.com"
+            f"{feature} requires Novyx Cloud. "
+            f"Run `novyx-mcp --setup` for a free key (5K memories, 5K calls/month)."
         )
 
     # ------------------------------------------------------------------
@@ -161,8 +175,18 @@ class LocalBackend:
                 "INSERT INTO memories (uuid, observation, context, agent_id, tags, importance, "
                 "confidence, created_at, embedding, expires_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (mem_id, observation, context, "local", tags_json, importance, confidence,
-                 now, embedding_blob, expires_at),
+                (
+                    mem_id,
+                    observation,
+                    context,
+                    "local",
+                    tags_json,
+                    importance,
+                    confidence,
+                    now,
+                    embedding_blob,
+                    expires_at,
+                ),
             )
             self._audit("CREATE", mem_id, {"observation": observation, "tags": tags or []})
 
@@ -193,13 +217,15 @@ class LocalBackend:
         similar_memories = recall_result.get("memories", [])
         review_summary = {
             "proposed_changes": [
-                change for change, present in [
+                change
+                for change, present in [
                     ("new observation", True),
                     ("context", bool(context)),
                     ("tags", bool(tags)),
                     ("importance", importance != 5),
                     ("confidence", confidence != 1.0),
-                ] if present
+                ]
+                if present
             ],
             "similar_count": len(similar_memories),
             "similar_memories": similar_memories,
@@ -231,7 +257,9 @@ class LocalBackend:
         ).fetchone()
         return self._row_to_draft(row)
 
-    def memory_drafts(self, *, status: str | None = None, branch_id: str | None = None) -> dict[str, Any]:
+    def memory_drafts(
+        self, *, status: str | None = None, branch_id: str | None = None
+    ) -> dict[str, Any]:
         """List stored drafts with optional status filtering."""
         if status and branch_id:
             rows = self._conn.execute(
@@ -289,12 +317,14 @@ class LocalBackend:
         for field in ["observation", "context", "tags", "importance", "confidence"]:
             current = compared_memory.get(field) if compared_memory else None
             proposed = draft.get(field)
-            changed_fields.append({
-                "field": field,
-                "current": current,
-                "proposed": proposed,
-                "changed": current != proposed,
-            })
+            changed_fields.append(
+                {
+                    "field": field,
+                    "current": current,
+                    "proposed": proposed,
+                    "changed": current != proposed,
+                }
+            )
 
         if not compared_memory:
             recommendation = "merge_new"
@@ -475,9 +505,7 @@ class LocalBackend:
                 tag_patterns,
             ).fetchall()
         else:
-            rows = self._conn.execute(
-                "SELECT * FROM memories WHERE deleted = 0"
-            ).fetchall()
+            rows = self._conn.execute("SELECT * FROM memories WHERE deleted = 0").fetchall()
 
         scored = []
         for row in rows:
@@ -572,9 +600,7 @@ class LocalBackend:
         ).fetchone()["a"]
 
         # Tag distribution
-        rows = self._conn.execute(
-            "SELECT tags FROM memories WHERE deleted = 0"
-        ).fetchall()
+        rows = self._conn.execute("SELECT tags FROM memories WHERE deleted = 0").fetchall()
         tag_counts: dict[str, int] = {}
         for row in rows:
             for tag in json.loads(row["tags"]):
@@ -655,16 +681,25 @@ class LocalBackend:
                         self._conn.execute(
                             "UPDATE memories SET observation = ?, tags = ?, importance = ?, "
                             "context = ?, updated_at = ? WHERE uuid = ?",
-                            (before.get("observation"), json.dumps(before.get("tags", [])),
-                             before.get("importance", 5), before.get("context"),
-                             self._now(), artifact_id),
+                            (
+                                before.get("observation"),
+                                json.dumps(before.get("tags", [])),
+                                before.get("importance", 5),
+                                before.get("context"),
+                                self._now(),
+                                artifact_id,
+                            ),
                         )
                         undone += 1
 
-            self._audit("ROLLBACK", "system", {
-                "target": target_iso,
-                "operations_undone": undone,
-            })
+            self._audit(
+                "ROLLBACK",
+                "system",
+                {
+                    "target": target_iso,
+                    "operations_undone": undone,
+                },
+            )
 
         return {
             "rolled_back_to": target_iso,
@@ -843,8 +878,14 @@ class LocalBackend:
             self._conn.execute(
                 "INSERT INTO spaces (space_id, name, description, allowed_agent_ids, tags, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?)",
-                (space_id, name, description, json.dumps(allowed_agent_ids or []),
-                 json.dumps(tags or []), now),
+                (
+                    space_id,
+                    name,
+                    description,
+                    json.dumps(allowed_agent_ids or []),
+                    json.dumps(tags or []),
+                    now,
+                ),
             )
             self._conn.commit()
 
@@ -921,7 +962,8 @@ class LocalBackend:
                 (
                     name if name is not None else current["name"],
                     description if description is not None else current["description"],
-                    json.dumps(allowed_agent_ids) if allowed_agent_ids is not None
+                    json.dumps(allowed_agent_ids)
+                    if allowed_agent_ids is not None
                     else json.dumps(current["allowed_agent_ids"]),
                     json.dumps(tags) if tags is not None else json.dumps(current["tags"]),
                     space_id,
@@ -1057,10 +1099,14 @@ class LocalBackend:
                 "UPDATE memories SET superseded_by = ?, updated_at = ? WHERE uuid = ?",
                 (new_memory_id, now, old_memory_id),
             )
-            self._audit("SUPERSEDE", old_memory_id, {
-                "old_memory_id": old_memory_id,
-                "new_memory_id": new_memory_id,
-            })
+            self._audit(
+                "SUPERSEDE",
+                old_memory_id,
+                {
+                    "old_memory_id": old_memory_id,
+                    "new_memory_id": new_memory_id,
+                },
+            )
 
         return {
             "old_memory_id": old_memory_id,
@@ -1109,8 +1155,14 @@ class LocalBackend:
         ]
         return {"memory_id": memory_id, "links": results, "total": len(results)}
 
-    def edges(self, *, memory_id: str | None = None, relation: str | None = None,
-              direction: str = "both", limit: int = 100) -> dict[str, Any]:
+    def edges(
+        self,
+        *,
+        memory_id: str | None = None,
+        relation: str | None = None,
+        direction: str = "both",
+        limit: int = 100,
+    ) -> dict[str, Any]:
         """Query graph edges with optional filters."""
         conditions = []
         params: list[Any] = []
@@ -1165,8 +1217,9 @@ class LocalBackend:
             self._audit("TRIPLE_DELETE", triple_id)
         return {"triple_id": triple_id, "status": "deleted"}
 
-    def entities(self, *, limit: int = 100, offset: int = 0,
-                 entity_type: str | None = None) -> dict[str, Any]:
+    def entities(
+        self, *, limit: int = 100, offset: int = 0, entity_type: str | None = None
+    ) -> dict[str, Any]:
         """List knowledge graph entities."""
         if entity_type:
             rows = self._conn.execute(
@@ -1268,13 +1321,56 @@ class LocalBackend:
     # ------------------------------------------------------------------
 
     def audit_verify(self) -> dict[str, Any]:
-        """Verify audit trail integrity (local mode: count-based check)."""
-        total = self._conn.execute("SELECT COUNT(*) as c FROM audit_log").fetchone()["c"]
+        """Verify audit trail integrity via SHA-256 hash chain."""
+        import hashlib
+
+        rows = self._conn.execute(
+            "SELECT entry_id, operation, artifact_id, timestamp, details, entry_hash "
+            "FROM audit_log ORDER BY rowid"
+        ).fetchall()
+        total = len(rows)
+
+        if total == 0:
+            return {
+                "verified": True,
+                "total_entries": 0,
+                "mode": "local",
+                "message": "Audit trail is empty.",
+            }
+
+        # Entries without hashes are pre-v5 — skip chain verification for those
+        prev_hash = "0" * 64
+        verified = 0
+        broken_at = None
+        for row in rows:
+            if not row["entry_hash"]:
+                continue  # pre-v5 entry, no hash to verify
+            payload = (
+                f"{prev_hash}:{row['entry_id']}:{row['operation']}:"
+                f"{row['artifact_id']}:{row['timestamp']}:{row['details']}"
+            )
+            expected = hashlib.sha256(payload.encode()).hexdigest()
+            if expected != row["entry_hash"]:
+                broken_at = row["entry_id"]
+                break
+            prev_hash = row["entry_hash"]
+            verified += 1
+
+        if broken_at:
+            return {
+                "verified": False,
+                "total_entries": total,
+                "verified_entries": verified,
+                "broken_at": broken_at,
+                "mode": "local",
+                "message": f"Hash chain broken at entry {broken_at}. Possible tampering.",
+            }
         return {
             "verified": True,
             "total_entries": total,
+            "verified_entries": verified,
             "mode": "local",
-            "message": "Local audit trail integrity verified (entry count check).",
+            "message": f"SHA-256 hash chain verified: {verified} entries intact.",
         }
 
     # ------------------------------------------------------------------
@@ -1293,24 +1389,59 @@ class LocalBackend:
             )
             self._conn.commit()
             self._audit("TRACE_CREATE", trace_id, {"name": name})
-        return {"trace_id": trace_id, "name": name, "status": "active", "created_at": now, "mode": "local"}
+        return {
+            "trace_id": trace_id,
+            "name": name,
+            "status": "active",
+            "created_at": now,
+            "mode": "local",
+        }
 
     def trace_step(self, trace_id: str, step_name: str, **kwargs: Any) -> dict[str, Any]:
         """Add a step to an execution trace."""
         step_id = f"stp_{uuid.uuid4().hex[:12]}"
         now = self._now()
+        input_data = kwargs.get("input_data", {})
+        output_data = kwargs.get("output_data", {})
+        if "content" in kwargs:
+            content = kwargs["content"]
+            if isinstance(content, dict):
+                input_data = content.get("input", input_data)
+                output_data = content.get("output", output_data)
+            elif content:
+                output_data = content
+        status = kwargs.get("status", "completed")
         with self._lock:
             self._conn.execute(
                 "INSERT INTO trace_steps (step_id, trace_id, step_name, input_data, output_data, "
                 "status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (step_id, trace_id, step_name,
-                 json.dumps(kwargs.get("input_data", {}), default=str),
-                 json.dumps(kwargs.get("output_data", {}), default=str),
-                 kwargs.get("status", "completed"), now),
+                (
+                    step_id,
+                    trace_id,
+                    step_name,
+                    json.dumps(input_data, default=str),
+                    json.dumps(output_data, default=str),
+                    status,
+                    now,
+                ),
             )
             self._conn.commit()
-        return {"step_id": step_id, "trace_id": trace_id, "step_name": step_name,
-                "status": "completed", "created_at": now, "mode": "local"}
+            # Write a TRACE_STEP audit entry so the step is part of the
+            # tamper-evident hash chain. trace_verify() walks the chain
+            # and will detect any post-hoc edit to this entry.
+            self._audit(
+                "TRACE_STEP",
+                step_id,
+                {"trace_id": trace_id, "step_name": step_name, "status": status},
+            )
+        return {
+            "step_id": step_id,
+            "trace_id": trace_id,
+            "step_name": step_name,
+            "status": status,
+            "created_at": now,
+            "mode": "local",
+        }
 
     def trace_complete(self, trace_id: str) -> dict[str, Any]:
         """Mark an execution trace as complete."""
@@ -1325,28 +1456,147 @@ class LocalBackend:
         steps = self._conn.execute(
             "SELECT COUNT(*) as c FROM trace_steps WHERE trace_id = ?", (trace_id,)
         ).fetchone()["c"]
-        return {"trace_id": trace_id, "status": "completed", "total_steps": steps,
-                "completed_at": now, "mode": "local"}
+        return {
+            "trace_id": trace_id,
+            "status": "completed",
+            "total_steps": steps,
+            "completed_at": now,
+            "mode": "local",
+        }
 
     def trace_verify(self, trace_id: str) -> dict[str, Any]:
-        """Verify a trace's integrity."""
-        row = self._conn.execute(
-            "SELECT * FROM traces WHERE trace_id = ?", (trace_id,)
-        ).fetchone()
+        """Verify a trace's integrity against the SHA-256 audit chain.
+
+        What this checks:
+          1. The full audit chain is intact end-to-end (same walk as
+             ``audit_verify``). A break anywhere fails verification — a
+             tampered environment cannot produce trusted trace claims.
+          2. A ``TRACE_CREATE`` audit entry for this trace_id exists in
+             the chain. Without it, there is no cryptographic evidence
+             the trace was ever started by the system.
+          3. Each ``TRACE_STEP`` audit entry referenced by this trace is
+             counted. New steps have been audit-chained since this fix;
+             older traces may have fewer chained steps than rows in
+             ``trace_steps`` — reported as a note rather than a failure.
+
+        What this does NOT check: the contents of ``trace_steps`` rows
+        themselves. If someone edits a step row directly in SQLite, the
+        audit entry for that step remains intact (and this tool still
+        returns verified=True). For a fully trusted trace replay, treat
+        the audit chain as the source of truth; the ``trace_steps`` table
+        is a convenience view over the same events.
+
+        Returns a dict with ``verified`` plus scope information. On
+        failure ``verified=False`` with ``broken_at`` (chain tamper) or
+        ``reason`` (lifecycle event missing).
+        """
+        import hashlib
+
+        row = self._conn.execute("SELECT * FROM traces WHERE trace_id = ?", (trace_id,)).fetchone()
         if not row:
             raise ValueError(f"Trace not found: {trace_id}")
-        steps = self._conn.execute(
-            "SELECT * FROM trace_steps WHERE trace_id = ? ORDER BY created_at",
+
+        total_steps = self._conn.execute(
+            "SELECT COUNT(*) AS c FROM trace_steps WHERE trace_id = ?",
             (trace_id,),
+        ).fetchone()["c"]
+        step_ids = {
+            r["step_id"]
+            for r in self._conn.execute(
+                "SELECT step_id FROM trace_steps WHERE trace_id = ?",
+                (trace_id,),
+            ).fetchall()
+        }
+
+        audit_rows = self._conn.execute(
+            "SELECT entry_id, operation, artifact_id, timestamp, details, entry_hash "
+            "FROM audit_log ORDER BY rowid"
         ).fetchall()
-        return {
+
+        prev_hash = "0" * 64
+        verified_entries = 0
+        broken_at: str | None = None
+        found_create = False
+        found_complete = False
+        steps_in_chain = 0
+
+        for ar in audit_rows:
+            if not ar["entry_hash"]:
+                continue  # pre-v5 entries, no hash to verify
+            payload = (
+                f"{prev_hash}:{ar['entry_id']}:{ar['operation']}:"
+                f"{ar['artifact_id']}:{ar['timestamp']}:{ar['details']}"
+            )
+            expected = hashlib.sha256(payload.encode()).hexdigest()
+            if expected != ar["entry_hash"]:
+                broken_at = ar["entry_id"]
+                break
+            prev_hash = ar["entry_hash"]
+            verified_entries += 1
+
+            op = ar["operation"]
+            aid = ar["artifact_id"]
+            if op == "TRACE_CREATE" and aid == trace_id:
+                found_create = True
+            elif op == "TRACE_COMPLETE" and aid == trace_id:
+                found_complete = True
+            elif op == "TRACE_STEP" and aid in step_ids:
+                steps_in_chain += 1
+
+        base: dict[str, Any] = {
             "trace_id": trace_id,
             "name": row["name"],
             "status": row["status"],
-            "total_steps": len(steps),
-            "verified": True,
+            "total_steps": total_steps,
             "mode": "local",
+            "verification_scope": "audit_chain_walk",
         }
+
+        if broken_at is not None:
+            base.update(
+                {
+                    "verified": False,
+                    "broken_at": broken_at,
+                    "verified_audit_entries": verified_entries,
+                    "reason": (
+                        f"SHA-256 audit chain broken at entry {broken_at}. "
+                        "Trace cannot be trusted — environment may be tampered."
+                    ),
+                }
+            )
+            return base
+
+        if not found_create:
+            base.update(
+                {
+                    "verified": False,
+                    "verified_audit_entries": verified_entries,
+                    "reason": "no TRACE_CREATE audit entry found for this trace",
+                }
+            )
+            return base
+
+        base.update(
+            {
+                "verified": True,
+                "verified_audit_entries": verified_entries,
+                "trace_create_in_chain": True,
+                "trace_complete_in_chain": found_complete,
+                "steps_in_chain": steps_in_chain,
+                "message": (
+                    f"SHA-256 audit chain intact ({verified_entries} entries). "
+                    f"TRACE_CREATE present; TRACE_COMPLETE "
+                    f"{'present' if found_complete else 'absent (trace may still be active)'}; "
+                    f"{steps_in_chain}/{total_steps} steps chained."
+                ),
+            }
+        )
+        if steps_in_chain < total_steps:
+            base["note"] = (
+                f"{total_steps - steps_in_chain} step(s) exist in trace_steps but "
+                "are not in the audit chain — pre-fix traces. New steps are chained."
+            )
+        return base
 
     # ------------------------------------------------------------------
     # Eval (local implementation)
@@ -1359,7 +1609,12 @@ class LocalBackend:
             "SELECT COUNT(*) as c FROM memories WHERE deleted = 0"
         ).fetchone()["c"]
         if total == 0:
-            return {"score": 1.0, "total_memories": 0, "message": "No memories to evaluate", "mode": "local"}
+            return {
+                "score": 1.0,
+                "total_memories": 0,
+                "message": "No memories to evaluate",
+                "mode": "local",
+            }
 
         low_conf = self._conn.execute(
             "SELECT COUNT(*) as c FROM memories WHERE deleted = 0 AND confidence < 0.5"
@@ -1380,7 +1635,10 @@ class LocalBackend:
         conflict_ratio = low_conf / total if total else 0
         supersede_ratio = superseded / total if total else 0
 
-        score = round(max(0.0, 1.0 - (stale_ratio * 0.4) - (conflict_ratio * 0.3) - (supersede_ratio * 0.15)), 3)
+        score = round(
+            max(0.0, 1.0 - (stale_ratio * 0.4) - (conflict_ratio * 0.3) - (supersede_ratio * 0.15)),
+            3,
+        )
 
         result = {
             "score": score,
@@ -1547,12 +1805,327 @@ class LocalBackend:
         return {}
 
     # ------------------------------------------------------------------
-    # Explain Action (cloud-only)
+    # Local Governance — Policies, Actions, Approvals
     # ------------------------------------------------------------------
 
+    _BUILTIN_POLICIES = [
+        {
+            "name": "FinancialSafetyPolicy",
+            "description": "Blocks actions involving financial transactions above thresholds",
+            "source": "builtin",
+            "enabled": True,
+            "rules": [
+                {
+                    "match": r"(transfer|payment|invoice|withdraw)",
+                    "severity": "high",
+                    "on_violation": "require_approval",
+                    "reason": "Financial action detected: {match}",
+                },
+            ],
+        },
+        {
+            "name": "DataExfiltrationPolicy",
+            "description": "Blocks actions that may leak sensitive data externally",
+            "source": "builtin",
+            "enabled": True,
+            "rules": [
+                {
+                    "match": r"(export|upload|send).*(pii|ssn|secret|credential|password)",
+                    "severity": "critical",
+                    "on_violation": "block",
+                    "reason": "Potential data exfiltration: {match}",
+                },
+            ],
+        },
+    ]
+
+    def list_policies(self, enabled_only: bool = True) -> dict[str, Any]:
+        """List all policies (built-in + custom)."""
+        policies = list(self._BUILTIN_POLICIES)
+        rows = self._conn.execute(
+            "SELECT * FROM policies" + (" WHERE enabled = 1" if enabled_only else "")
+        ).fetchall()
+        for row in rows:
+            policies.append(
+                {
+                    "name": row["name"],
+                    "description": row["description"],
+                    "source": "custom",
+                    "enabled": bool(row["enabled"]),
+                    "rules": json.loads(row["rules"]),
+                    "created_at": row["created_at"],
+                }
+            )
+        return {"policies": policies, "total": len(policies), "mode": "local"}
+
+    def create_policy(
+        self, name: str, description: str = "", rules: list | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Create a custom governance policy."""
+        now = self._now()
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR REPLACE INTO policies (name, description, rules, enabled, created_at, updated_at) "
+                "VALUES (?, ?, ?, 1, ?, ?)",
+                (name, description, json.dumps(rules or []), now, now),
+            )
+            self._conn.commit()
+            self._audit("POLICY_CREATE", name, {"description": description, "rules": rules or []})
+        return {"name": name, "status": "created", "created_at": now, "mode": "local"}
+
+    def delete_policy(self, policy_name: str) -> dict[str, Any]:
+        """Disable a custom policy (built-ins cannot be deleted)."""
+        builtin_names = {p["name"] for p in self._BUILTIN_POLICIES}
+        if policy_name in builtin_names:
+            return {"error": f"Cannot delete built-in policy: {policy_name}"}
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE policies SET enabled = 0, updated_at = ? WHERE name = ?",
+                (self._now(), policy_name),
+            )
+            self._conn.commit()
+            if cursor.rowcount == 0:
+                return {"error": f"Policy not found: {policy_name}"}
+            self._audit("POLICY_DELETE", policy_name)
+        return {"name": policy_name, "status": "disabled", "mode": "local"}
+
+    def check_policy(self, action: str, params: dict | None = None) -> dict[str, Any]:
+        """Evaluate an action against all enabled policies (local regex matching)."""
+        import hashlib
+
+        params = params or {}
+        content = json.dumps({"action": action, "params": params})
+        violations = []
+
+        all_policies = list(self._BUILTIN_POLICIES)
+        rows = self._conn.execute("SELECT * FROM policies WHERE enabled = 1").fetchall()
+        for row in rows:
+            all_policies.append(
+                {
+                    "name": row["name"],
+                    "rules": json.loads(row["rules"]),
+                }
+            )
+
+        for policy in all_policies:
+            for rule in policy.get("rules", []):
+                pattern = rule.get("match", "")
+                if re.search(pattern, content, re.IGNORECASE):
+                    reason = rule.get("reason", "Policy violation").replace("{match}", pattern)
+                    violations.append(
+                        {
+                            "policy": policy["name"],
+                            "severity": rule.get("severity", "medium"),
+                            "reason": reason,
+                            "recommended_action": rule.get("on_violation", "warn"),
+                        }
+                    )
+
+        if any(v["recommended_action"] == "block" for v in violations):
+            status = "blocked"
+        elif any(v["recommended_action"] == "require_approval" for v in violations):
+            status = "pending_review"
+        else:
+            status = "allowed"
+
+        risk_score = min(1.0, len(violations) * 0.3) if violations else 0.0
+
+        return {
+            "action": action,
+            "status": status,
+            "risk_score": risk_score,
+            "violations": violations,
+            "policies_evaluated": len(all_policies),
+            "mode": "local",
+            "hash": hashlib.sha256(content.encode()).hexdigest()[:16],
+        }
+
+    def action_submit(
+        self,
+        action: str,
+        params: dict | None = None,
+        agent_id: str = "local",
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Submit an action for local policy evaluation."""
+        import secrets
+
+        result = self.check_policy(action, params)
+        action_id = f"act-local-{secrets.token_hex(8)}"
+        now = self._now()
+
+        response = {
+            "action_id": action_id,
+            "action": action,
+            "status": result["status"],
+            "policy_result": result,
+            "message": {
+                "allowed": "Action permitted by local policy evaluation",
+                "blocked": f"Action blocked: {result['violations'][0]['reason']}"
+                if result["violations"]
+                else "Blocked",
+                "pending_review": f"Action requires approval. Track with action_id: {action_id}",
+            }.get(result["status"], "Unknown"),
+            "created_at": now,
+            "mode": "local",
+        }
+
+        if dry_run:
+            response["dry_run"] = True
+            response["message"] = f"Dry run: action would be {result['status']} (not logged)"
+            return response
+
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO actions (action_id, action, params, status, policy_result, "
+                "message, agent_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    action_id,
+                    action,
+                    json.dumps(params or {}),
+                    result["status"],
+                    json.dumps(result),
+                    response["message"],
+                    agent_id,
+                    now,
+                ),
+            )
+            self._conn.commit()
+            self._audit(
+                "ACTION_SUBMIT",
+                action_id,
+                {
+                    "action": action,
+                    "status": result["status"],
+                    "risk_score": result["risk_score"],
+                },
+            )
+        return response
+
+    def action_status(self, action_id: str) -> dict[str, Any]:
+        """Get the status of a submitted action."""
+        row = self._conn.execute(
+            "SELECT * FROM actions WHERE action_id = ?", (action_id,)
+        ).fetchone()
+        if not row:
+            return {"error": f"Action not found: {action_id}"}
+        return {
+            "action_id": row["action_id"],
+            "action": row["action"],
+            "status": row["status"],
+            "policy_result": json.loads(row["policy_result"]),
+            "message": row["message"],
+            "agent_id": row["agent_id"],
+            "approver_id": row["approver_id"],
+            "decided_at": row["decided_at"],
+            "created_at": row["created_at"],
+            "mode": "local",
+        }
+
+    def action_history(self, limit: int = 20) -> dict[str, Any]:
+        """List recent actions."""
+        rows = self._conn.execute(
+            "SELECT * FROM actions ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        actions = []
+        for row in rows:
+            actions.append(
+                {
+                    "action_id": row["action_id"],
+                    "action": row["action"],
+                    "status": row["status"],
+                    "agent_id": row["agent_id"],
+                    "created_at": row["created_at"],
+                }
+            )
+        return {"actions": actions, "total": len(actions), "mode": "local"}
+
+    def list_pending(self, limit: int = 20) -> dict[str, Any]:
+        """List actions pending approval."""
+        rows = self._conn.execute(
+            "SELECT * FROM actions WHERE status = 'pending_review' ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        pending = []
+        for row in rows:
+            pending.append(
+                {
+                    "action_id": row["action_id"],
+                    "action": row["action"],
+                    "params": json.loads(row["params"]),
+                    "policy_result": json.loads(row["policy_result"]),
+                    "agent_id": row["agent_id"],
+                    "created_at": row["created_at"],
+                }
+            )
+        return {"pending": pending, "total": len(pending), "mode": "local"}
+
+    def approve_action(
+        self,
+        action_id: str,
+        approver_id: str = "operator",
+        decision: str = "approved",
+        reason: str = "",
+    ) -> dict[str, Any]:
+        """Approve or deny a pending action."""
+        row = self._conn.execute(
+            "SELECT * FROM actions WHERE action_id = ?", (action_id,)
+        ).fetchone()
+        if not row:
+            return {"error": f"Action not found: {action_id}"}
+        if row["status"] != "pending_review":
+            return {"error": f"Action is not pending review (status: {row['status']})"}
+
+        new_status = "approved" if decision == "approved" else "denied"
+        now = self._now()
+        with self._lock:
+            self._conn.execute(
+                "UPDATE actions SET status = ?, approver_id = ?, decided_at = ? WHERE action_id = ?",
+                (new_status, approver_id, now, action_id),
+            )
+            self._conn.commit()
+            self._audit(
+                f"ACTION_{new_status.upper()}",
+                action_id,
+                {
+                    "approver_id": approver_id,
+                    "reason": reason,
+                },
+            )
+        return {
+            "action_id": action_id,
+            "status": new_status,
+            "approver_id": approver_id,
+            "decided_at": now,
+            "mode": "local",
+        }
+
     def explain_action(self, action_id: str) -> dict[str, Any]:
-        self._cloud_only("Action explanations")
-        return {}
+        """Explain the full causal chain for an action."""
+        row = self._conn.execute(
+            "SELECT * FROM actions WHERE action_id = ?", (action_id,)
+        ).fetchone()
+        if not row:
+            return {"error": f"Action not found: {action_id}"}
+        audit_entries = self._conn.execute(
+            "SELECT * FROM audit_log WHERE artifact_id = ? ORDER BY timestamp",
+            (action_id,),
+        ).fetchall()
+        return {
+            "action_id": row["action_id"],
+            "action": row["action"],
+            "status": row["status"],
+            "policy_result": json.loads(row["policy_result"]),
+            "audit_trail": [
+                {
+                    "operation": e["operation"],
+                    "timestamp": e["timestamp"],
+                    "details": json.loads(e["details"]),
+                }
+                for e in audit_entries
+            ],
+            "mode": "local",
+        }
 
     # ------------------------------------------------------------------
     # Sentinel Intel (cloud-only)

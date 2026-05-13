@@ -10,7 +10,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 SCHEMA_SQL = """
 -- Memory store
@@ -93,7 +93,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
     artifact_id TEXT,
     agent_id   TEXT DEFAULT 'local',
     timestamp  TEXT NOT NULL,
-    details    TEXT DEFAULT '{}'  -- JSON object with before/after state
+    details    TEXT DEFAULT '{}',  -- JSON object with before/after state
+    entry_hash TEXT DEFAULT ''     -- SHA-256 hash chain
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
@@ -146,6 +147,33 @@ CREATE TABLE IF NOT EXISTS trace_steps (
 );
 
 CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON trace_steps(trace_id);
+
+-- Governance policies
+CREATE TABLE IF NOT EXISTS policies (
+    name        TEXT PRIMARY KEY,
+    description TEXT DEFAULT '',
+    rules       TEXT DEFAULT '[]',   -- JSON array of rule objects
+    enabled     INTEGER DEFAULT 1,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
+-- Governed actions
+CREATE TABLE IF NOT EXISTS actions (
+    action_id   TEXT PRIMARY KEY,
+    action      TEXT NOT NULL,
+    params      TEXT DEFAULT '{}',   -- JSON
+    status      TEXT NOT NULL,       -- allowed, blocked, pending_review, approved, denied
+    policy_result TEXT DEFAULT '{}', -- JSON
+    message     TEXT DEFAULT '',
+    agent_id    TEXT DEFAULT 'local',
+    approver_id TEXT,
+    decided_at  TEXT,
+    created_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_actions_status ON actions(status);
+CREATE INDEX IF NOT EXISTS idx_actions_created ON actions(created_at);
 
 -- Schema versioning
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -249,5 +277,41 @@ def _migrate(conn: sqlite3.Connection, from_version: int, to_version: int) -> No
             """
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON trace_steps(trace_id)")
+    if from_version < 5 <= to_version:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS policies (
+                name        TEXT PRIMARY KEY,
+                description TEXT DEFAULT '',
+                rules       TEXT DEFAULT '[]',
+                enabled     INTEGER DEFAULT 1,
+                created_at  TEXT NOT NULL,
+                updated_at  TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS actions (
+                action_id   TEXT PRIMARY KEY,
+                action      TEXT NOT NULL,
+                params      TEXT DEFAULT '{}',
+                status      TEXT NOT NULL,
+                policy_result TEXT DEFAULT '{}',
+                message     TEXT DEFAULT '',
+                agent_id    TEXT DEFAULT 'local',
+                approver_id TEXT,
+                decided_at  TEXT,
+                created_at  TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_actions_status ON actions(status)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_actions_created ON actions(created_at)")
+        # Add hash chain column to audit_log for cryptographic verification
+        try:
+            conn.execute("ALTER TABLE audit_log ADD COLUMN entry_hash TEXT DEFAULT ''")
+        except Exception:
+            pass  # column already exists
     conn.execute("UPDATE schema_version SET version = ?", (to_version,))
     conn.commit()

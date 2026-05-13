@@ -7,6 +7,7 @@ Preserves exact existing behavior — every method delegates to the SDK.
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -230,7 +231,24 @@ class CloudBackend:
         return self._client.trace_create(name, **kwargs)
 
     def trace_step(self, trace_id: str, step_name: str, **kwargs: Any) -> dict[str, Any]:
-        return self._client.trace_step(trace_id, step_name, **kwargs)
+        content = kwargs.pop("content", None)
+        metadata = kwargs.pop("metadata", None)
+        if content is None and kwargs:
+            content = {
+                key: value
+                for key, value in {
+                    "input": kwargs.pop("input_data", None),
+                    "output": kwargs.pop("output_data", None),
+                }.items()
+                if value is not None
+            }
+        if content is None:
+            content_text = ""
+        elif isinstance(content, str):
+            content_text = content
+        else:
+            content_text = json.dumps(content, default=str)
+        return self._client.trace_step(trace_id, step_name, content_text, metadata=metadata)
 
     def trace_complete(self, trace_id: str) -> dict[str, Any]:
         return self._client.trace_complete(trace_id)

@@ -39,17 +39,35 @@ mcp = FastMCP("novyx-memory")
 _backend_instance = None
 
 
+def _load_stored_key():
+    """Read API key from ~/.novyx/credentials.json."""
+    try:
+        from pathlib import Path
+
+        creds = Path("~/.novyx/credentials.json").expanduser()
+        data = json.loads(creds.read_text())
+        return data.get("api_key")
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return None
+
+
 def _get_backend() -> Any:
     """Get the memory backend — cloud (Novyx API) or local (SQLite).
 
-    Cloud mode: NOVYX_API_KEY is set → delegates to Novyx Cloud API
-    Local mode: No API key → full offline operation via SQLite
+    Cloud mode: NOVYX_API_KEY is set (or stored in ~/.novyx/credentials.json)
+    Local mode: No API key anywhere → full offline operation via SQLite
     """
     global _backend_instance
     if _backend_instance is not None:
         return _backend_instance
 
-    if os.environ.get("NOVYX_API_KEY"):
+    api_key = os.environ.get("NOVYX_API_KEY")
+    if not api_key:
+        api_key = _load_stored_key()
+        if api_key:
+            os.environ["NOVYX_API_KEY"] = api_key
+
+    if api_key:
         from .cloud_backend import CloudBackend
 
         _backend_instance = CloudBackend()
@@ -115,6 +133,7 @@ def _handle_tier_error(e: Exception, feature: str = "This feature") -> str:
         return json.dumps(
             {
                 "error": str(e),
+                "setup": "Run `novyx-mcp --setup` for a free API key",
                 "upgrade": "https://novyxlabs.com/pricing",
             }
         )
@@ -137,6 +156,74 @@ def _json_error(e: Exception) -> str:
 def _json_result(result: Any) -> str:
     """Serialize a successful MCP tool result."""
     return json.dumps(result, default=str)
+
+
+def _parse_json_field(value: Any) -> Any:
+    """Parse a JSON string field, handling MCP middleware pre-parsing.
+
+    MCP middleware may auto-parse JSON strings into dicts/lists before
+    they reach the tool function. This helper accepts both cases:
+    - str → json.loads(value)
+    - dict/list → returned as-is (already parsed)
+    """
+    if isinstance(value, (dict, list)):
+        return value
+    return json.loads(value)
+
+
+def _parse_json_or_string(value: Any) -> Any:
+    """Parse JSON-shaped input, but preserve plain strings as strings."""
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return value
+    return value
+
+
+def _parse_json_field_specs(
+    specs: tuple[tuple[str, Any, Any], ...],
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse a declaration-ordered sequence of JSON field specs.
+
+    Each spec is ``(field_name, raw_value, parser)``. Falsy raw values are
+    skipped (``if not raw: continue``) so callers can pass their raw
+    kwargs directly without pre-filtering None/empty-string. Returns
+    ``(parsed_dict, None)`` on success, ``(None, error_json)`` on the
+    first parse failure — the field name of the failing spec goes into
+    the error envelope so the tool's caller can tell which field was
+    malformed.
+
+    Field-name order IS the error-precedence order — callers own that
+    contract by choosing the order in which they assemble ``specs``.
+
+    Per-spec ``parser`` exists because the update/create/rollback tools
+    mix two parsing disciplines:
+      - ``json.loads``: strict. Rejects pre-parsed dicts with TypeError
+        (caller lets it propagate, surfacing a 500/raw error).
+      - ``_parse_json_field``: MCP-middleware-tolerant. Accepts a
+        pre-parsed dict/list as-is, falls back to ``json.loads`` for
+        strings.
+    Collapsing to a single global parser would change the public
+    contract of fields like ``approval_requirements`` (currently strict)
+    vs ``config`` (tolerant). Per-spec parser preserves both.
+
+    Returning ``None`` (not ``{}``) on error is deliberate: callers that
+    thread a tuple return cannot accidentally dispatch an empty update
+    if control flow drifts — a truthy/falsy check on the dict discriminates
+    success from failure cleanly.
+    """
+    out: dict[str, Any] = {}
+    for field_name, raw, parser in specs:
+        if not raw:
+            continue
+        try:
+            out[field_name] = parser(raw)
+        except json.JSONDecodeError as e:
+            return None, json.dumps({"error": f"Invalid {field_name} JSON: {e}"})
+    return out, None
 
 
 def _call_backend_json(method_name: str, *args: Any, **kwargs: Any) -> str:
@@ -1261,7 +1348,7 @@ def audit_verify() -> str:
 
 
 @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
-def trace_create(name: str, metadata: str | None = None) -> str:
+def trace_create(name: str, metadata: str | dict | None = None) -> str:
     """Create an execution trace to track a multi-step agent workflow.
 
     Start a trace before a complex operation, add steps as you go,
@@ -1278,7 +1365,7 @@ def trace_create(name: str, metadata: str | None = None) -> str:
         backend = _get_backend()
         kwargs = {}
         if metadata:
-            kwargs["metadata"] = json.loads(metadata)
+            kwargs["metadata"] = _parse_json_field(metadata)
         result = backend.trace_create(name, **kwargs)
         return json.dumps(result, default=str)
     except Exception as e:
@@ -1289,8 +1376,12 @@ def trace_create(name: str, metadata: str | None = None) -> str:
 def trace_step(
     trace_id: str,
     step_name: str,
-    input_data: str | None = None,
-    output_data: str | None = None,
+    input_data: str | dict | None = None,
+    output_data: str | dict | None = None,
+    content: str | dict | None = None,
+    input: str | dict | None = None,
+    output: str | dict | None = None,
+    metadata: str | dict | None = None,
 ) -> str:
     """Add a step to an execution trace.
 
@@ -1308,12 +1399,26 @@ def trace_step(
     """
     try:
         backend = _get_backend()
-        kwargs: dict[str, Any] = {}
-        if input_data:
-            kwargs["input_data"] = json.loads(input_data)
-        if output_data:
-            kwargs["output_data"] = json.loads(output_data)
-        result = backend.trace_step(trace_id, step_name, **kwargs)
+        step_metadata = _parse_json_or_string(metadata) if metadata is not None else None
+        if content is not None:
+            kwargs = {"content": _parse_json_or_string(content)}
+            if step_metadata is not None:
+                kwargs["metadata"] = step_metadata
+            result = backend.trace_step(trace_id, step_name, **kwargs)
+        else:
+            step_content: dict[str, Any] = {}
+            if input_data is not None:
+                step_content["input"] = _parse_json_or_string(input_data)
+            elif input is not None:
+                step_content["input"] = _parse_json_or_string(input)
+            if output_data is not None:
+                step_content["output"] = _parse_json_or_string(output_data)
+            elif output is not None:
+                step_content["output"] = _parse_json_or_string(output)
+            kwargs = {"content": step_content or ""}
+            if step_metadata is not None:
+                kwargs["metadata"] = step_metadata
+            result = backend.trace_step(trace_id, step_name, **kwargs)
         return json.dumps(result, default=str)
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -1629,15 +1734,39 @@ def revoke_shared_context(token: str) -> str:
 # =========================================================================
 
 
+def _is_local_mode() -> bool:
+    """True when running in local SQLite mode (no API key)."""
+    return not os.environ.get("NOVYX_API_KEY")
+
+
 def _control_request(method: str, path: str, body: dict | None = None) -> dict:
-    """Make an HTTP request to Novyx Control."""
+    """Make an HTTP request to Novyx Control.
+
+    Raises ``CloudFeatureError`` when NOVYX_CONTROL_URL / NOVYX_CONTROL_API_KEY
+    are missing, rather than returning a ``{"error": ...}`` dict that MCP
+    clients would otherwise render as a successful tool result. Action
+    gating (approve, check_policy, etc.) is a governance claim — silent
+    failure with error-in-result was a direct credibility risk.
+
+    HTTP errors from Control are still returned as dicts (the caller can
+    decide whether that counts as a real tool failure) but the
+    config-missing case now surfaces cleanly to the MCP client.
+    """
     import urllib.error
     import urllib.request
+
+    from .local_backend import CloudFeatureError
 
     control_url = os.environ.get("NOVYX_CONTROL_URL")
     control_key = os.environ.get("NOVYX_CONTROL_API_KEY")
     if not control_url or not control_key:
-        return {"error": "Control not configured. Set NOVYX_CONTROL_URL and NOVYX_CONTROL_API_KEY."}
+        raise CloudFeatureError(
+            "Novyx Control is not configured. "
+            "Set NOVYX_CONTROL_URL + NOVYX_CONTROL_API_KEY to use action gating, "
+            "policy evaluation, and approval workflows. "
+            "Alternatively, run the MCP server in local mode (unset NOVYX_API_KEY) "
+            "to exercise local policy evaluation and approvals against SQLite."
+        )
 
     url = f"{control_url.rstrip('/')}{path}"
     headers = {
@@ -1674,7 +1803,13 @@ def list_pending(limit: int = 20) -> str:
     Returns:
         JSON string with pending approvals list.
     """
-    result = _control_request("GET", f"/v1/approvals?limit={limit}")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(backend.list_pending(limit=limit), default=str)
+    try:
+        result = _control_request("GET", f"/v1/approvals?limit={limit}")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1693,8 +1828,22 @@ def approve_action(approval_id: str, approver_id: str, reason: str = "") -> str:
     Returns:
         JSON string with the executed action details.
     """
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(
+            backend.approve_action(
+                approval_id,
+                approver_id=approver_id,
+                decision="approved",
+                reason=reason,
+            ),
+            default=str,
+        )
     body = {"approver_id": approver_id, "decision": "approved", "reason": reason}
-    result = _control_request("POST", f"/v1/approvals/{approval_id}/decision", body)
+    try:
+        result = _control_request("POST", f"/v1/approvals/{approval_id}/decision", body)
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1711,7 +1860,15 @@ def check_policy(connector: str = "", environment: str = "production") -> str:
     Returns:
         JSON string with policy profile and whether the connector requires approval.
     """
-    result = _control_request("GET", "/v1/control/policies")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(
+            backend.check_policy(connector or "unknown", {"environment": environment}), default=str
+        )
+    try:
+        result = _control_request("GET", "/v1/control/policies")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     if "error" not in result:
         profile = result.get("policy_profile", {})
         if connector:
@@ -1738,7 +1895,13 @@ def list_policies(enabled_only: bool = True) -> str:
     Returns:
         JSON string with list of policies, their source (builtin/custom), and status.
     """
-    result = _control_request("GET", "/v1/control/policies")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(backend.list_policies(enabled_only=enabled_only), default=str)
+    try:
+        result = _control_request("GET", "/v1/control/policies")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     if "error" not in result and enabled_only:
         policies = result.get("policies", [])
         result["policies"] = [p for p in policies if p.get("enabled", True)]
@@ -1773,6 +1936,11 @@ def create_policy(
     Returns:
         JSON string confirming policy creation with version number.
     """
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(
+            backend.create_policy(name, description=description, rules=rules), default=str
+        )
     config = {
         "name": name,
         "description": description,
@@ -1780,7 +1948,10 @@ def create_policy(
         "step_types": step_types,
         "whitelisted_domains": whitelisted_domains,
     }
-    result = _control_request("POST", "/v1/control/policies", config)
+    try:
+        result = _control_request("POST", "/v1/control/policies", config)
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1797,7 +1968,13 @@ def delete_policy(policy_name: str) -> str:
     Returns:
         JSON string confirming policy was disabled.
     """
-    result = _control_request("DELETE", f"/v1/control/policies/{policy_name}")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(backend.delete_policy(policy_name), default=str)
+    try:
+        result = _control_request("DELETE", f"/v1/control/policies/{policy_name}")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1815,8 +1992,8 @@ def memory_health() -> str:
 
     try:
         stats = backend.stats()
-    except Exception:
-        return json.dumps({"score": 100, "total": 0, "message": "No memories yet"})
+    except Exception as e:
+        return json.dumps({"error": f"memory_health could not read backend stats: {e}"})
 
     total = (
         stats.get("total_memories", 0)
@@ -1877,7 +2054,13 @@ def action_history(limit: int = 20) -> str:
     Returns:
         JSON string with action list.
     """
-    result = _control_request("GET", f"/v1/actions?limit={limit}")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(backend.action_history(limit=limit), default=str)
+    try:
+        result = _control_request("GET", f"/v1/actions?limit={limit}")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1885,7 +2068,7 @@ def action_history(limit: int = 20) -> str:
 def action_submit(
     connector: str,
     operation: str,
-    payload: str,
+    payload: str | dict,
 ) -> str:
     """Submit an action to Novyx Control for governed execution.
 
@@ -1900,11 +2083,27 @@ def action_submit(
     Returns:
         JSON string with action ID, status, and policy decision.
     """
+    if _is_local_mode():
+        backend = _get_backend()
+        try:
+            params = _parse_json_field(payload)
+        except (json.JSONDecodeError, TypeError) as e:
+            return json.dumps({"error": f"Invalid JSON payload: {e}"})
+        return json.dumps(
+            backend.action_submit(
+                action=f"{connector}/{operation}",
+                params=params,
+            ),
+            default=str,
+        )
     try:
-        body = json.loads(payload)
-    except json.JSONDecodeError as e:
+        body = _parse_json_field(payload)
+    except (json.JSONDecodeError, TypeError) as e:
         return json.dumps({"error": f"Invalid JSON payload: {e}"})
-    result = _control_request("POST", f"/v1/actions/{connector}/{operation}", body)
+    try:
+        result = _control_request("POST", f"/v1/actions/{connector}/{operation}", body)
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -1921,7 +2120,13 @@ def action_status(action_id: str) -> str:
     Returns:
         JSON string with action details.
     """
-    result = _control_request("GET", f"/v1/actions/{action_id}")
+    if _is_local_mode():
+        backend = _get_backend()
+        return json.dumps(backend.action_status(action_id), default=str)
+    try:
+        result = _control_request("GET", f"/v1/actions/{action_id}")
+    except Exception as e:
+        return _handle_tier_error(e, "Novyx Control")
     return json.dumps(result, default=str)
 
 
@@ -2105,7 +2310,7 @@ def threat_stats() -> str:
 
 
 @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
-def threat_record(threat_event: str) -> str:
+def threat_record(threat_event: str | dict) -> str:
     """Record a threat event for cross-tenant intelligence.
 
     The event is fingerprinted, deduplicated, and added to the threat network.
@@ -2118,8 +2323,8 @@ def threat_record(threat_event: str) -> str:
         JSON string with the created/updated threat signature.
     """
     try:
-        event = json.loads(threat_event)
-    except json.JSONDecodeError as e:
+        event = _parse_json_field(threat_event)
+    except (json.JSONDecodeError, TypeError) as e:
         return json.dumps({"error": f"Invalid JSON: {e}"})
     try:
         backend = _get_backend()
@@ -2152,7 +2357,7 @@ def threat_trending(hours: int = 24, min_occurrences: int = 2) -> str:
 
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-def threat_match(threat_event: str, min_similarity: float = 0.8) -> str:
+def threat_match(threat_event: str | dict, min_similarity: float = 0.8) -> str:
     """Find known threat signatures matching a threat event.
 
     Compares the event fingerprint against the threat database.
@@ -2166,8 +2371,8 @@ def threat_match(threat_event: str, min_similarity: float = 0.8) -> str:
         JSON string with matching signatures.
     """
     try:
-        event = json.loads(threat_event)
-    except json.JSONDecodeError as e:
+        event = _parse_json_field(threat_event)
+    except (json.JSONDecodeError, TypeError) as e:
         return json.dumps({"error": f"Invalid JSON: {e}"})
     try:
         backend = _get_backend()
@@ -2248,7 +2453,7 @@ def defense_list(rule_type: str | None = None) -> str:
 
 
 @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
-def defense_deploy(signature_id: str, rule_type: str, rule_config: str | None = None) -> str:
+def defense_deploy(signature_id: str, rule_type: str, rule_config: str | dict | None = None) -> str:
     """Deploy a defense rule against a threat signature.
 
     Automatically blocks, rate-limits, quarantines, or alerts on matching threats.
@@ -2265,8 +2470,8 @@ def defense_deploy(signature_id: str, rule_type: str, rule_config: str | None = 
     config = None
     if rule_config:
         try:
-            config = json.loads(rule_config)
-        except json.JSONDecodeError as e:
+            config = _parse_json_field(rule_config)
+        except (json.JSONDecodeError, TypeError) as e:
             return json.dumps({"error": f"Invalid rule_config JSON: {e}"})
     try:
         backend = _get_backend()
@@ -2385,7 +2590,7 @@ def defense_recommend(signature_id: str) -> str:
 
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-def correlate_threat(threat_event: str) -> str:
+def correlate_threat(threat_event: str | dict) -> str:
     """Check if a threat correlates with attacks on other tenants.
 
     Cross-references the threat fingerprint against the network database.
@@ -2398,8 +2603,8 @@ def correlate_threat(threat_event: str) -> str:
         JSON string with correlation result and matching signatures.
     """
     try:
-        event = json.loads(threat_event)
-    except json.JSONDecodeError as e:
+        event = _parse_json_field(threat_event)
+    except (json.JSONDecodeError, TypeError) as e:
         return json.dumps({"error": f"Invalid JSON: {e}"})
     try:
         backend = _get_backend()
@@ -2445,8 +2650,8 @@ def coordinated_attack_check(threat_events: str, time_window_hours: int | None =
         JSON string with is_coordinated boolean.
     """
     try:
-        events = json.loads(threat_events)
-    except json.JSONDecodeError as e:
+        events = _parse_json_field(threat_events)
+    except (json.JSONDecodeError, TypeError) as e:
         return json.dumps({"error": f"Invalid JSON: {e}"})
     try:
         backend = _get_backend()
@@ -2502,6 +2707,46 @@ def stream_status() -> str:
         return json.dumps(result, default=str)
     except Exception as e:
         return _handle_tier_error(e, "Streams")
+
+
+# =========================================================================
+# Introspection
+# =========================================================================
+
+
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def tool_health(
+    status: str | None = None,
+    category: str | None = None,
+) -> str:
+    """Introspect the MCP tool surface.
+
+    Returns a machine-readable registry of every tool exposed by this server,
+    each with a status (functional / cloud_only / cloud_only_hard_fail / stub),
+    category (memory, graph, runtime, control, ...), and a one-line
+    description. Use this to answer "what can this MCP actually do, and which
+    parts require Novyx Cloud?" without having to call every tool.
+
+    Args:
+        status: Optional filter — only return tools with this status.
+        category: Optional filter — only return tools in this category.
+
+    Returns:
+        JSON string: {counts, tools}. counts is over the full registry
+        (not the filtered view); tools is filtered if status/category given.
+    """
+    from novyx_mcp.tool_registry import registry_snapshot
+
+    snap = registry_snapshot()
+    if status or category:
+        snap["tools"] = [
+            t
+            for t in snap["tools"]
+            if (status is None or t["status"] == status)
+            and (category is None or t["category"] == category)
+        ]
+        snap["filtered"] = {"status": status, "category": category, "matched": len(snap["tools"])}
+    return json.dumps(snap, indent=2, default=str)
 
 
 # =========================================================================
@@ -2743,6 +2988,11 @@ def startup_health_check() -> str | None:
     """
     try:
         backend = _get_backend()
+        if _is_local_mode():
+            print(
+                "Novyx: local mode (62/120 tools). Run `novyx-mcp --setup` for free cloud access.",
+                file=sys.stderr,
+            )
         stats = backend.stats()
     except Exception:
         msg = "Novyx: ready (no memories yet)"
@@ -2828,13 +3078,15 @@ def create_agent(
         policy_profile: JSON string of policy profile configuration.
     """
     if provider not in ("openai", "anthropic", "litellm"):
-        return json.dumps({
-            "error": (
-                f"Invalid provider '{provider}'. "
-                "Choose 'openai', 'anthropic', or 'litellm' "
-                "(use litellm for Gemini, Mistral, Cohere, etc.)."
-            )
-        })
+        return json.dumps(
+            {
+                "error": (
+                    f"Invalid provider '{provider}'. "
+                    "Choose 'openai', 'anthropic', or 'litellm' "
+                    "(use litellm for Gemini, Mistral, Cohere, etc.)."
+                )
+            }
+        )
     if not model:
         return json.dumps({"error": "model is required"})
 
@@ -2883,6 +3135,56 @@ def delete_agent(agent_id: str) -> str:
     return _call_backend_json("delete_agent", agent_id)
 
 
+def _optional_agent_update_kwargs(
+    name: str | None,
+    model: str | None,
+    provider: str | None,
+    instructions: str | None,
+    capabilities: list[str] | None,
+    memory_scope: str | None,
+) -> dict[str, Any]:
+    """Collect the update_agent fields that do NOT require JSON parsing.
+
+    ``if v:`` guards preserve the contract that falsy values (``""``, ``[]``)
+    are skipped rather than forwarded. See
+    ``test_update_agent.TestUpdateAgentFalsyValues``.
+    """
+    out: dict[str, Any] = {}
+    for k, v in (
+        ("name", name),
+        ("model", model),
+        ("provider", provider),
+        ("instructions", instructions),
+        ("capabilities", capabilities),
+        ("memory_scope", memory_scope),
+    ):
+        if v:
+            out[k] = v
+    return out
+
+
+def _parse_agent_update_json_fields(
+    policy_profile: str | None,
+    config: str | dict | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse update_agent's two JSON fields.
+
+    Error precedence (declaration order): ``policy_profile -> config``.
+    Pinned by ``test_first_error_wins_when_both_json_fields_invalid``.
+
+    Parser asymmetry: ``config`` uses ``_parse_json_field`` (dict-tolerant);
+    ``policy_profile`` uses ``json.loads`` (strict, rejects dicts with
+    TypeError). Pinned by ``test_policy_profile_rejects_pre_parsed_dict``
+    / ``test_config_accepts_pre_parsed_dict``.
+    """
+    return _parse_json_field_specs(
+        (
+            ("policy_profile", policy_profile, json.loads),
+            ("config", config, _parse_json_field),
+        )
+    )
+
+
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False))
 def update_agent(
     agent_id: str,
@@ -2893,7 +3195,7 @@ def update_agent(
     capabilities: list[str] | None = None,
     memory_scope: str | None = None,
     policy_profile: str | None = None,
-    config: str | None = None,
+    config: str | dict | None = None,
 ) -> str:
     """Update an existing agent's configuration.
 
@@ -2908,29 +3210,13 @@ def update_agent(
         policy_profile: JSON string of policy profile configuration.
         config: JSON string of additional configuration.
     """
-    kwargs: dict[str, Any] = {}
-    if name:
-        kwargs["name"] = name
-    if model:
-        kwargs["model"] = model
-    if provider:
-        kwargs["provider"] = provider
-    if instructions:
-        kwargs["instructions"] = instructions
-    if capabilities:
-        kwargs["capabilities"] = capabilities
-    if memory_scope:
-        kwargs["memory_scope"] = memory_scope
-    if policy_profile:
-        try:
-            kwargs["policy_profile"] = json.loads(policy_profile)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid policy_profile JSON: {e}"})
-    if config:
-        try:
-            kwargs["config"] = json.loads(config)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid config JSON: {e}"})
+    json_parts, err = _parse_agent_update_json_fields(policy_profile, config)
+    if err is not None:
+        return err
+    kwargs = _optional_agent_update_kwargs(
+        name, model, provider, instructions, capabilities, memory_scope
+    )
+    kwargs.update(json_parts)
     return _call_backend_json("update_agent", agent_id, **kwargs)
 
 
@@ -3007,6 +3293,56 @@ def cancel_mission(mission_id: str) -> str:
     return _call_backend_json("cancel_mission", mission_id)
 
 
+def _optional_mission_update_kwargs(
+    goal: str | None,
+    constraints: list[str] | None,
+    success_criteria: list[str] | None,
+    allowed_capabilities: list[str] | None,
+) -> dict[str, Any]:
+    """Collect the update_mission fields that do NOT require JSON parsing.
+
+    ``if v:`` guards preserve the contract that falsy values (``""``, ``[]``)
+    are skipped. See ``test_update_mission.TestUpdateMissionFalsyValues``.
+    """
+    out: dict[str, Any] = {}
+    for k, v in (
+        ("goal", goal),
+        ("constraints", constraints),
+        ("success_criteria", success_criteria),
+        ("allowed_capabilities", allowed_capabilities),
+    ):
+        if v:
+            out[k] = v
+    return out
+
+
+def _parse_mission_update_json_fields(
+    escalation_rules: str | None,
+    stop_conditions: str | None,
+    config: str | dict | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse update_mission's three JSON fields.
+
+    Error precedence (declaration order):
+    ``escalation_rules -> stop_conditions -> config``.
+
+    Unlike the capability and agent helpers, **every** mission field uses
+    ``_parse_json_field`` (dict-tolerant) — there is no strict-parsing
+    field here. Pinned by ``test_all_three_json_fields_accept_pre_parsed_dict``.
+    Collapsing to a single global parser across all four wrappers would
+    change the capability / agent contracts; the shared helper at
+    ``_parse_json_field_specs`` takes parser per spec for exactly this
+    reason.
+    """
+    return _parse_json_field_specs(
+        (
+            ("escalation_rules", escalation_rules, _parse_json_field),
+            ("stop_conditions", stop_conditions, _parse_json_field),
+            ("config", config, _parse_json_field),
+        )
+    )
+
+
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False))
 def update_mission(
     mission_id: str,
@@ -3016,7 +3352,7 @@ def update_mission(
     allowed_capabilities: list[str] | None = None,
     escalation_rules: str | None = None,
     stop_conditions: str | None = None,
-    config: str | None = None,
+    config: str | dict | None = None,
 ) -> str:
     """Update an existing mission's configuration.
 
@@ -3030,30 +3366,13 @@ def update_mission(
         stop_conditions: JSON string of stop conditions.
         config: JSON string of additional configuration.
     """
-    kwargs: dict[str, Any] = {}
-    if goal:
-        kwargs["goal"] = goal
-    if constraints:
-        kwargs["constraints"] = constraints
-    if success_criteria:
-        kwargs["success_criteria"] = success_criteria
-    if allowed_capabilities:
-        kwargs["allowed_capabilities"] = allowed_capabilities
-    if escalation_rules:
-        try:
-            kwargs["escalation_rules"] = json.loads(escalation_rules)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid escalation_rules JSON: {e}"})
-    if stop_conditions:
-        try:
-            kwargs["stop_conditions"] = json.loads(stop_conditions)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid stop_conditions JSON: {e}"})
-    if config:
-        try:
-            kwargs["config"] = json.loads(config)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid config JSON: {e}"})
+    json_parts, err = _parse_mission_update_json_fields(escalation_rules, stop_conditions, config)
+    if err is not None:
+        return err
+    kwargs = _optional_mission_update_kwargs(
+        goal, constraints, success_criteria, allowed_capabilities
+    )
+    kwargs.update(json_parts)
     return _call_backend_json("update_mission", mission_id, **kwargs)
 
 
@@ -3066,6 +3385,55 @@ def delete_mission(mission_id: str) -> str:
 # =========================================================================
 # Runtime v2: Capabilities
 # =========================================================================
+
+
+def _optional_capability_create_kwargs(
+    description: str | None,
+    tools: list[dict] | None,
+    risk_levels: dict | None,
+) -> dict[str, Any]:
+    """Collect the optional non-JSON create fields, skipping falsy values.
+
+    Mirrors ``_nonjson_capability_update_kwargs`` (iteration 1) in shape but
+    deliberately kept separate: create omits ``status`` and ``name`` (name is
+    required and handled in the main function). Generalizing the two is a
+    later decision, not this iteration.
+    """
+    out: dict[str, Any] = {}
+    for k, v in (
+        ("description", description),
+        ("tools", tools),
+        ("risk_levels", risk_levels),
+    ):
+        if v:
+            out[k] = v
+    return out
+
+
+def _parse_capability_create_json_fields(
+    approval_requirements: str | None,
+    memory_behavior: str | None,
+    eval_rules: str | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse create_capability's three JSON fields.
+
+    Error precedence (declaration order):
+    ``approval_requirements -> memory_behavior -> eval_rules``. Pinned by
+    ``test_first_error_wins_when_multiple_fields_invalid`` and
+    ``test_second_error_wins_when_first_ok``.
+
+    Separate from ``_parse_capability_json_fields`` on purpose: the update
+    path also parses ``config`` via ``_parse_json_field`` for middleware
+    tolerance, while create does not carry ``config``. Unifying them
+    would change create's public contract.
+    """
+    return _parse_json_field_specs(
+        (
+            ("approval_requirements", approval_requirements, json.loads),
+            ("memory_behavior", memory_behavior, json.loads),
+            ("eval_rules", eval_rules, json.loads),
+        )
+    )
 
 
 @mcp.tool(annotations=ToolAnnotations(destructiveHint=False))
@@ -3089,28 +3457,14 @@ def create_capability(
         memory_behavior: JSON string of memory behavior configuration.
         eval_rules: JSON string of evaluation rules.
     """
+    json_parts, err = _parse_capability_create_json_fields(
+        approval_requirements, memory_behavior, eval_rules
+    )
+    if err is not None:
+        return err
     kwargs: dict[str, Any] = {"name": name}
-    if description:
-        kwargs["description"] = description
-    if tools:
-        kwargs["tools"] = tools
-    if risk_levels:
-        kwargs["risk_levels"] = risk_levels
-    if approval_requirements:
-        try:
-            kwargs["approval_requirements"] = json.loads(approval_requirements)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid approval_requirements JSON: {e}"})
-    if memory_behavior:
-        try:
-            kwargs["memory_behavior"] = json.loads(memory_behavior)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid memory_behavior JSON: {e}"})
-    if eval_rules:
-        try:
-            kwargs["eval_rules"] = json.loads(eval_rules)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid eval_rules JSON: {e}"})
+    kwargs.update(_optional_capability_create_kwargs(description, tools, risk_levels))
+    kwargs.update(json_parts)
     return _call_backend_json("create_capability", **kwargs)
 
 
@@ -3129,6 +3483,86 @@ def get_capability(capability_id: str) -> str:
     return _call_backend_json("get_capability", capability_id)
 
 
+def _nonjson_capability_update_kwargs(
+    name: str | None,
+    description: str | None,
+    tools: list[dict] | None,
+    risk_levels: dict | None,
+    status: str | None,
+) -> dict[str, Any]:
+    """Collect the update_capability fields that do NOT require JSON parsing.
+
+    ``if v:`` guards preserve the long-standing contract that falsy values
+    (``""``, ``[]``, ``{}``) are skipped rather than forwarded — see
+    ``test_update_capability.TestUpdateCapabilityFalsyValues``.
+    """
+    out: dict[str, Any] = {}
+    for k, v in (
+        ("name", name),
+        ("description", description),
+        ("tools", tools),
+        ("risk_levels", risk_levels),
+        ("status", status),
+    ):
+        if v:
+            out[k] = v
+    return out
+
+
+def _parse_capability_json_fields(
+    approval_requirements: str | None,
+    memory_behavior: str | None,
+    eval_rules: str | None,
+    config: str | dict | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Parse update_capability's four JSON fields.
+
+    Error precedence (declaration order):
+    ``approval_requirements -> memory_behavior -> eval_rules -> config``.
+    Pinned by ``test_first_error_wins_when_multiple_fields_invalid``.
+
+    Parser asymmetry: ``config`` uses ``_parse_json_field`` (dict-tolerant)
+    while the other three use ``json.loads`` (strict). Pinned by
+    ``test_approval_requirements_rejects_pre_parsed_dict`` /
+    ``test_config_accepts_pre_parsed_dict``.
+    """
+    return _parse_json_field_specs(
+        (
+            ("approval_requirements", approval_requirements, json.loads),
+            ("memory_behavior", memory_behavior, json.loads),
+            ("eval_rules", eval_rules, json.loads),
+            ("config", config, _parse_json_field),
+        )
+    )
+
+
+def _build_capability_update_kwargs(
+    name: str | None,
+    description: str | None,
+    tools: list[dict] | None,
+    risk_levels: dict | None,
+    approval_requirements: str | None,
+    memory_behavior: str | None,
+    eval_rules: str | None,
+    config: str | dict | None,
+    status: str | None,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Assemble the full kwargs dict for ``update_capability``.
+
+    Returns ``(kwargs, None)`` on success, ``(None, error_json)`` on JSON
+    parse failure. ``None`` rather than ``{}`` on error makes it structurally
+    impossible for a caller to dispatch an empty update after an error.
+    """
+    json_parts, err = _parse_capability_json_fields(
+        approval_requirements, memory_behavior, eval_rules, config
+    )
+    if err is not None:
+        return None, err
+    kwargs = _nonjson_capability_update_kwargs(name, description, tools, risk_levels, status)
+    kwargs.update(json_parts)
+    return kwargs, None
+
+
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False))
 def update_capability(
     capability_id: str,
@@ -3139,7 +3573,7 @@ def update_capability(
     approval_requirements: str | None = None,
     memory_behavior: str | None = None,
     eval_rules: str | None = None,
-    config: str | None = None,
+    config: str | dict | None = None,
     status: str | None = None,
 ) -> str:
     """Update an existing capability pack.
@@ -3156,37 +3590,19 @@ def update_capability(
         config: JSON string of additional configuration.
         status: New status (active, deprecated).
     """
-    kwargs: dict[str, Any] = {}
-    if name:
-        kwargs["name"] = name
-    if description:
-        kwargs["description"] = description
-    if tools:
-        kwargs["tools"] = tools
-    if risk_levels:
-        kwargs["risk_levels"] = risk_levels
-    if approval_requirements:
-        try:
-            kwargs["approval_requirements"] = json.loads(approval_requirements)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid approval_requirements JSON: {e}"})
-    if memory_behavior:
-        try:
-            kwargs["memory_behavior"] = json.loads(memory_behavior)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid memory_behavior JSON: {e}"})
-    if eval_rules:
-        try:
-            kwargs["eval_rules"] = json.loads(eval_rules)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid eval_rules JSON: {e}"})
-    if config:
-        try:
-            kwargs["config"] = json.loads(config)
-        except json.JSONDecodeError as e:
-            return json.dumps({"error": f"Invalid config JSON: {e}"})
-    if status:
-        kwargs["status"] = status
+    kwargs, err = _build_capability_update_kwargs(
+        name,
+        description,
+        tools,
+        risk_levels,
+        approval_requirements,
+        memory_behavior,
+        eval_rules,
+        config,
+        status,
+    )
+    if err is not None:
+        return err
     return _call_backend_json("update_capability", capability_id, **kwargs)
 
 
@@ -3205,7 +3621,7 @@ def delete_capability(capability_id: str) -> str:
 def create_checkpoint(
     mission_id: str,
     label: str | None = None,
-    metadata: str | None = None,
+    metadata: str | dict | None = None,
 ) -> str:
     """Create a checkpoint for a mission (rollback point).
 
@@ -3219,7 +3635,7 @@ def create_checkpoint(
         kwargs["label"] = label
     if metadata:
         try:
-            kwargs["metadata"] = json.loads(metadata)
+            kwargs["metadata"] = _parse_json_field(metadata)
         except json.JSONDecodeError as e:
             return json.dumps({"error": f"Invalid metadata JSON: {e}"})
     return _call_backend_json("create_checkpoint", **kwargs)
@@ -3264,7 +3680,7 @@ def create_intervention(
     action_id: str | None = None,
     agent_id: str | None = None,
     rationale: str | None = None,
-    metadata: str | None = None,
+    metadata: str | dict | None = None,
 ) -> str:
     """Record a supervisor intervention (approve, reject, pause, escalate, etc).
 
@@ -3287,7 +3703,7 @@ def create_intervention(
         kwargs["rationale"] = rationale
     if metadata:
         try:
-            kwargs["metadata"] = json.loads(metadata)
+            kwargs["metadata"] = _parse_json_field(metadata)
         except json.JSONDecodeError as e:
             return json.dumps({"error": f"Invalid metadata JSON: {e}"})
     return _call_backend_json("create_intervention", **kwargs)

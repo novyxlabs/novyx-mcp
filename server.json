@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.novyxlabs/novyx-mcp",
   "title": "Novyx MCP",
-  "description": "Persistent memory + governance for AI agents. 119 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
+  "description": "Persistent memory + governance for AI agents. 120 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
   "repository": {
     "url": "https://github.com/novyxlabs/novyx-mcp",
     "source": "github"
   },
-  "version": "2.5.2",
+  "version": "2.7.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "novyx-mcp",
-      "version": "2.5.2",
+      "version": "2.7.1",
       "transport": {
         "type": "stdio"
       }
