@@ -1,6 +1,6 @@
 {
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
-  "_warning": "The tools[] array in this file is a legacy catalog snapshot and does not reflect all 120 MCP tools shipped in novyx-mcp 2.7.1. The authoritative tool surface is the published PyPI package (novyx-mcp==2.7.1) and the @mcp.tool decorators in novyx_mcp/server.py.",
+  "_warning": "Generated from novyxlabs/novyx-core packages/novyx-mcp. Version 2.7.1; 120 MCP tools. Edit canonical MCP source in the monorepo, not this mirror.",
   "name": "novyx-mcp",
   "version": "2.7.1",
   "description": "Persistent memory + governance for AI agents. 120 MCP tools — core memory works locally (zero config SQLite), full surface (policy-as-code, approval workflows, governance dashboard, threat intel, auto-defense, governed actions, Runtime v2 agents/missions/capabilities) with Novyx Cloud.",
@@ -42,50 +42,170 @@
     }
   },
   "tools": [
-    {"name": "remember", "description": "Store a memory with tags, importance, and optional TTL"},
-    {"name": "recall", "description": "Semantic search across stored memories"},
-    {"name": "forget", "description": "Delete a specific memory by ID"},
-    {"name": "memories", "description": "List all memories with optional tag filtering"},
-    {"name": "memory", "description": "Get a single memory by ID"},
-    {"name": "rollback", "description": "Undo operations after a timestamp (supports relative time like '5 minutes ago')"},
-    {"name": "audit", "description": "View the full audit trail of memory operations"},
-    {"name": "audit_export", "description": "Export the full audit log (JSON, CSV, or JSONL)"},
-    {"name": "stats", "description": "Get memory statistics including count, importance distribution, and tags"},
-    {"name": "link", "description": "Create a relationship link between two memories"},
-    {"name": "triple", "description": "Add a subject-predicate-object triple to the knowledge graph"},
-    {"name": "triples", "description": "Query the knowledge graph by subject, predicate, or object"},
-    {"name": "create_space", "description": "Create an isolated context space for scoped memory"},
-    {"name": "list_spaces", "description": "List all context spaces"},
-    {"name": "get_space", "description": "Get details of a context space"},
-    {"name": "update_space", "description": "Update a context space's name or description"},
-    {"name": "delete_space", "description": "Delete a context space"},
-    {"name": "usage", "description": "Check current tier, limits, and usage"},
-    {"name": "share_context", "description": "Share a tagged set of memories with another user (cloud only)"},
-    {"name": "replay_timeline", "description": "View the full timeline of memory changes (cloud only)"},
-    {"name": "replay_snapshot", "description": "Get a point-in-time snapshot of all memories (cloud only)"},
-    {"name": "replay_lifecycle", "description": "View the full lifecycle of a single memory (cloud only)"},
-    {"name": "replay_diff", "description": "Compare memory state between two timestamps (cloud only)"},
-    {"name": "cortex_status", "description": "Check background analysis status (cloud only)"},
-    {"name": "cortex_update_config", "description": "Tune consolidation, reinforcement, and decay settings"},
-    {"name": "action_submit", "description": "Submit an action for governed execution"},
-    {"name": "action_status", "description": "Get the status of a specific action"},
-    {"name": "explain_action", "description": "Get the full causal chain for an action decision"},
-    {"name": "eval_baseline_create", "description": "Save a recall baseline for regression testing"},
-    {"name": "eval_baselines", "description": "List all saved eval baselines"},
-    {"name": "eval_baseline_delete", "description": "Delete an eval baseline"}
+    {
+      "name": "remember",
+      "description": "Store a memory with tags, importance, and optional TTL"
+    },
+    {
+      "name": "recall",
+      "description": "Semantic search across stored memories"
+    },
+    {
+      "name": "forget",
+      "description": "Delete a specific memory by ID"
+    },
+    {
+      "name": "memories",
+      "description": "List all memories with optional tag filtering"
+    },
+    {
+      "name": "memory",
+      "description": "Get a single memory by ID"
+    },
+    {
+      "name": "rollback",
+      "description": "Undo operations after a timestamp (supports relative time like '5 minutes ago')"
+    },
+    {
+      "name": "audit",
+      "description": "View the full audit trail of memory operations"
+    },
+    {
+      "name": "audit_export",
+      "description": "Export the full audit log (JSON, CSV, or JSONL)"
+    },
+    {
+      "name": "stats",
+      "description": "Get memory statistics including count, importance distribution, and tags"
+    },
+    {
+      "name": "link",
+      "description": "Create a relationship link between two memories"
+    },
+    {
+      "name": "triple",
+      "description": "Add a subject-predicate-object triple to the knowledge graph"
+    },
+    {
+      "name": "triples",
+      "description": "Query the knowledge graph by subject, predicate, or object"
+    },
+    {
+      "name": "create_space",
+      "description": "Create an isolated context space for scoped memory"
+    },
+    {
+      "name": "list_spaces",
+      "description": "List all context spaces"
+    },
+    {
+      "name": "get_space",
+      "description": "Get details of a context space"
+    },
+    {
+      "name": "update_space",
+      "description": "Update a context space's name or description"
+    },
+    {
+      "name": "delete_space",
+      "description": "Delete a context space"
+    },
+    {
+      "name": "usage",
+      "description": "Check current tier, limits, and usage"
+    },
+    {
+      "name": "share_context",
+      "description": "Share a tagged set of memories with another user (cloud only)"
+    },
+    {
+      "name": "replay_timeline",
+      "description": "View the full timeline of memory changes (cloud only)"
+    },
+    {
+      "name": "replay_snapshot",
+      "description": "Get a point-in-time snapshot of all memories (cloud only)"
+    },
+    {
+      "name": "replay_lifecycle",
+      "description": "View the full lifecycle of a single memory (cloud only)"
+    },
+    {
+      "name": "replay_diff",
+      "description": "Compare memory state between two timestamps (cloud only)"
+    },
+    {
+      "name": "cortex_status",
+      "description": "Check background analysis status (cloud only)"
+    },
+    {
+      "name": "cortex_update_config",
+      "description": "Tune consolidation, reinforcement, and decay settings"
+    },
+    {
+      "name": "action_submit",
+      "description": "Submit an action for governed execution"
+    },
+    {
+      "name": "action_status",
+      "description": "Get the status of a specific action"
+    },
+    {
+      "name": "explain_action",
+      "description": "Get the full causal chain for an action decision"
+    },
+    {
+      "name": "eval_baseline_create",
+      "description": "Save a recall baseline for regression testing"
+    },
+    {
+      "name": "eval_baselines",
+      "description": "List all saved eval baselines"
+    },
+    {
+      "name": "eval_baseline_delete",
+      "description": "Delete an eval baseline"
+    }
   ],
   "resources": [
-    {"name": "memory_stats", "description": "Current memory statistics"},
-    {"name": "recent_memories", "description": "Last 10 memories stored"},
-    {"name": "audit_log", "description": "Recent audit trail entries"},
-    {"name": "knowledge_graph", "description": "Knowledge graph triples"},
-    {"name": "context_spaces", "description": "List of context spaces"},
-    {"name": "usage_info", "description": "Current tier and usage limits"}
+    {
+      "name": "memory_stats",
+      "description": "Current memory statistics"
+    },
+    {
+      "name": "recent_memories",
+      "description": "Last 10 memories stored"
+    },
+    {
+      "name": "audit_log",
+      "description": "Recent audit trail entries"
+    },
+    {
+      "name": "knowledge_graph",
+      "description": "Knowledge graph triples"
+    },
+    {
+      "name": "context_spaces",
+      "description": "List of context spaces"
+    },
+    {
+      "name": "usage_info",
+      "description": "Current tier and usage limits"
+    }
   ],
   "prompts": [
-    {"name": "memory_context", "description": "Inject relevant memories into the conversation context"},
-    {"name": "knowledge_graph_context", "description": "Inject knowledge graph facts into context"},
-    {"name": "memory_management", "description": "Guide for organizing and maintaining memories"}
+    {
+      "name": "memory_context",
+      "description": "Inject relevant memories into the conversation context"
+    },
+    {
+      "name": "knowledge_graph_context",
+      "description": "Inject knowledge graph facts into context"
+    },
+    {
+      "name": "memory_management",
+      "description": "Guide for organizing and maintaining memories"
+    }
   ],
   "capabilities": {
     "local_mode": true,
