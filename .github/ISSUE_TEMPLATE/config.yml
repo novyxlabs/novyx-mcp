@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: mailto:security@novyxlabs.com
+    about: Please report vulnerabilities privately.
