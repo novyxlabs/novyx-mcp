@@ -13,6 +13,8 @@ Status legend:
   - "cloud_only_hard_fail"  : reserved. A cloud-only tool that does NOT emit
                               a structured envelope on config-missing. Any
                               tool landing here is a regression bug.
+  - "disabled"              : declared but intentionally unavailable. The tool
+                              returns a structured non-success envelope.
   - "stub"                  : reserved. Tool is declared but raises
                               NotImplementedError or returns a canned stub.
 """
@@ -21,7 +23,13 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
-ToolStatus = Literal["functional", "cloud_only", "cloud_only_hard_fail", "stub"]
+ToolStatus = Literal[
+    "functional",
+    "cloud_only",
+    "cloud_only_hard_fail",
+    "disabled",
+    "stub",
+]
 
 
 class ToolInfo(TypedDict):
@@ -154,7 +162,7 @@ TOOL_REGISTRY: dict[str, ToolInfo] = {
     "delete_space": {"status": "functional", "category": "space", "description": "Delete a context space (owner only)."},
     "list_spaces": {"status": "functional", "category": "space", "description": "List all context spaces you can access."},
     "revoke_shared_context": {"status": "functional", "category": "space", "description": "Revoke a shared context invitation."},
-    "share_space": {"status": "functional", "category": "space", "description": "Share a space/tag with another user by email."},
+    "share_space": {"status": "disabled", "category": "space", "description": "Cross-tenant space sharing is disabled until hosted invitation redemption is available."},
     "shared_contexts": {"status": "functional", "category": "space", "description": "List all shared contexts you have access to."},
     "space_memories": {"status": "functional", "category": "space", "description": "List or search memories within a context space."},
     "update_space": {"status": "functional", "category": "space", "description": "Update a context space (owner only)."},

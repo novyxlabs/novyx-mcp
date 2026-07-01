@@ -1,12 +1,38 @@
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
+[![PyPI](https://img.shields.io/pypi/v/novyx-mcp.svg)](https://pypi.org/project/novyx-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/novyx-mcp.svg)](https://pypi.org/project/novyx-mcp/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Governed actions, shared memory, audit, and rollback for MCP clients such as
 **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
 config (SQLite) for memory and policy-evaluation workflows, or connects to
 Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
-Runtime v2, threat intelligence, auto-defense, replay, and eval baselines.
-Every Novyx customer makes every other customer safer.
+Runtime v2, threat intelligence, defense tracking, replay, and eval baselines.
+
+## What To Try First
+
+Use Novyx MCP when coding agents need reviewable shared memory instead of
+untracked context sprawl:
+
+```text
+draft_memory(
+  observation="Deploys fail if REDIS_URL is unset in staging",
+  tags=["ops", "staging"],
+  importance=8,
+  branch_id="staging-fixes"
+)
+
+memory_branch("staging-fixes")
+draft_diff("drf_abc123")
+merge_branch("staging-fixes")
+```
+
+That workflow keeps agent memory reviewable before it becomes permanent. The
+same server also exposes governed-action tools (`action_submit`,
+`list_pending`, `approve_action`, `explain_action`) when you connect it to
+Novyx Cloud.
 
 ## Install
 
@@ -163,7 +189,7 @@ Multi-agent collaboration — shared memory with fine-grained permissions.
 | `create_space` / `update_space` / `delete_space` | Context space CRUD |
 | `list_spaces` | List spaces you own or have access to |
 | `space_memories` | Search or list memories within a space |
-| `share_space` | Share a space by email with permission level |
+| `share_space` | Disabled: cross-tenant invitation redemption is not available yet |
 | `shared_contexts` | List spaces shared with you |
 | `accept_shared_context` / `revoke_shared_context` | Accept invites or revoke access |
 | `context_now` | Get the current context state for a space |
@@ -217,7 +243,7 @@ Detect, signature, and correlate adversarial activity across agents.
 | `detect_campaign` | Detect long-running threat campaigns |
 | `related_signatures` | Find signatures related to a given threat |
 
-### Auto-Defense (7 tools — Pro+)
+### Defense Tracking (7 tools)
 
 Deploy and tune automated defensive rules.
 

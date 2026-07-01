@@ -872,9 +872,10 @@ def share_space(
     email: str,
     permission: str = "read",
 ) -> str:
-    """Share a space/tag with another user by email.
+    """Report that cross-tenant space sharing is currently unavailable.
 
-    Requires Novyx Cloud — not available in local mode.
+    Novyx Cloud share tokens currently point to a hosted /join redemption
+    route that is not available. Do not issue unredeemable tokens from MCP.
 
     Args:
         tag: The tag or space tag to share.
@@ -882,14 +883,26 @@ def share_space(
         permission: Access level — 'read' or 'write' (default 'read').
 
     Returns:
-        JSON string with the share token and join URL.
+        JSON string explaining that no cross-tenant share was created.
     """
-    try:
-        backend = _get_backend()
-        result = backend.share_context(tag, to_email=email, permission=permission)
-        return json.dumps(result, default=str)
-    except Exception as e:
-        return _handle_tier_error(e, "Sharing")
+    return json.dumps(
+        {
+            "status": "local-only",
+            "shared": False,
+            "tag": tag,
+            "email": email,
+            "permission": permission,
+            "error": (
+                "share_space is disabled because cross-tenant invitation "
+                "redemption is not available."
+            ),
+            "detail": (
+                "No share token or join URL was issued. The hosted /join "
+                "redemption route is not available, so recipients cannot "
+                "redeem MCP share invitations yet."
+            ),
+        }
+    )
 
 
 # =========================================================================
@@ -2722,7 +2735,8 @@ def tool_health(
     """Introspect the MCP tool surface.
 
     Returns a machine-readable registry of every tool exposed by this server,
-    each with a status (functional / cloud_only / cloud_only_hard_fail / stub),
+    each with a status (functional / cloud_only / cloud_only_hard_fail /
+    disabled / stub),
     category (memory, graph, runtime, control, ...), and a one-line
     description. Use this to answer "what can this MCP actually do, and which
     parts require Novyx Cloud?" without having to call every tool.

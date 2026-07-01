@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible novyx-mcp problem.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What broke?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Include exact commands, MCP client config, and tool call.
+      placeholder: |
+        1. pip install novyx-mcp==...
+        2. Configure Claude Desktop/Cursor/Claude Code with ...
+        3. Call tool ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: novyx-mcp version
+      placeholder: "2.7.1"
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: "Claude Desktop, Claude Code, Cursor, Windsurf, Cline"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Local SQLite
+        - Novyx Cloud
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: text
