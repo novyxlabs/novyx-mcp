@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.8.0 (2026-07-01)
+
+### Changed — distribution refresh for governed agent work
+
+- Repositioned the README, manifest, and distribution copy around governed
+  actions, shared memory, audit, rollback, and evidence workflows.
+- Added a "What To Try First" path so new users can exercise memory drafting,
+  branching, diffing, and merge review without hunting through the full tool
+  list.
+- Added public mirror community files: contributing guide, security policy,
+  code of conduct, issue templates, and pull request template.
+- Updated the mirror sync script to publish those community files into
+  `novyxlabs/novyx-mcp` while preserving mirror-owned workflows.
+
+### Fixed — hosted sharing honesty
+
+- `share_space` now returns a clear disabled/local-only response until hosted
+  invitation redemption is available, instead of emitting fake invite URLs or
+  tokens.
+- The tool registry now marks disabled tools explicitly so clients can surface
+  status without guessing.
+
+### Guardrails
+
+- Kept stale numeric tool-count checks, but removed the old requirement that
+  distribution copy advertise a specific tool count.
+- Added regression tests for the disabled `share_space` path and mirror
+  community-file sync.
+
 ## 2.7.1 (2026-04-20)
 
 ### Fixed — per-category README counts

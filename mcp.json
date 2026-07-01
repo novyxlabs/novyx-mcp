@@ -1,8 +1,8 @@
 {
   "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
-  "_warning": "Generated from novyxlabs/novyx-core packages/novyx-mcp. Version 2.7.1; 120 MCP tools. Edit canonical MCP source in the monorepo, not this mirror.",
+  "_warning": "Generated from novyxlabs/novyx-core packages/novyx-mcp. Version 2.8.0; 120 MCP tools. Edit canonical MCP source in the monorepo, not this mirror.",
   "name": "novyx-mcp",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "MCP tools for Novyx governed actions, shared memory, audit, rollback, and evidence workflows. Local SQLite memory works zero-config; hosted governance and approvals use Novyx Cloud.",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
   "packages": {
     "pypi": {
       "name": "novyx-mcp",
-      "version": "2.7.1",
+      "version": "2.8.0",
       "extras": {
         "local": "Includes sentence-transformers for higher quality local embeddings"
       }
