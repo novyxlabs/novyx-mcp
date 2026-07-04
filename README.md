@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/novyxlabs-novyx-mcp-badge.png)](https://mseep.ai/app/novyxlabs-novyx-mcp)
+
 <!-- mcp-name: io.github.novyxlabs/novyx-mcp -->
 # novyx-mcp
 
