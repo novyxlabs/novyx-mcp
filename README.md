@@ -9,8 +9,9 @@ Governed actions, shared memory, audit, and rollback for MCP clients such as
 **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
 config (SQLite) for memory and policy-evaluation workflows, or connects to
 Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
-Runtime v2, replay, and eval baselines. Threat-intelligence and defense-tracking
-calls in this 2.8.0 tree are not a working control; see Defense tracking below.
+Runtime v2, replay, and eval baselines. The threat-intelligence and
+defense-tracking tools were removed in 2.9.0 and never enforced anything;
+upgrade to 2.9.0 or later.
 
 ## What To Try First
 
@@ -226,29 +227,10 @@ First-class agents, missions, capability packs, checkpoints, and human intervent
 
 Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
 
-### Threat intelligence
+### Threat-intelligence and defense-tracking tools
 
-Not a working control in this tree. The 2.8.0 server still registers
-`threat_*` and correlation tool functions (`novyx_mcp/server.py`), but
-`novyx_mcp/local_backend.py` raises `CloudFeatureError` from
-`_cloud_only("Sentinel Intel")` for every one of them, and
-`novyx_mcp/cloud_backend.py` only forwards them to the `/v1/sentinel-intel/*`
-API. That backend detected nothing (threats were client-asserted and the
-similarity thresholds were ignored) and was cut from Novyx Core. Package 2.9.0
-removed these tools (see `packages/novyx-mcp/CHANGELOG.md` in novyx-core). The
-old tool table is gone so this README does not list detection, matching, or
-campaign correlation that nothing performs.
-
-### Defense tracking
-
-Not a working control in this tree. `novyx_mcp/local_backend.py` raises
-`CloudFeatureError` from `_cloud_only("Sentinel Intel")` for these calls and
-does not install a rule. `novyx_mcp/cloud_backend.py` only forwards them to
-the API client. Package 2.9.0 removed that surface because the backing
-subsystem detected and enforced nothing (see `packages/novyx-mcp/CHANGELOG.md`
-in novyx-core, and `packages/novyx-mcp/tests/test_no_auto_defense_surface.py`).
-This mirror is still 2.8.0 (`pyproject.toml`). The old tool table is gone so
-this README does not list rules it does not enforce.
+These tools were removed in novyx-mcp 2.9.0. They never enforced anything.
+Upgrade to novyx-mcp 2.9.0 or later.
 
 ### Replay (7 tools — Pro+)
 
