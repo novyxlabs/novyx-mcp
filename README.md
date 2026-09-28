@@ -231,6 +231,7 @@ Capabilities require Starter+. Checkpoints require Pro+. Interventions require E
 
 These tools were removed in novyx-mcp 2.9.0. They never enforced anything.
 Upgrade to novyx-mcp 2.9.0 or later.
+This repository's code is still at 2.8.0 and still includes those tools. They don't enforce anything.
 
 ### Replay (7 tools — Pro+)
 
