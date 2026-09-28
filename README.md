@@ -226,23 +226,18 @@ First-class agents, missions, capability packs, checkpoints, and human intervent
 
 Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
 
-### Threat Intelligence (11 tools — Pro+)
+### Threat intelligence
 
-Detect, signature, and correlate adversarial activity across agents.
-
-| Tool | Description |
-|------|-------------|
-| `threat_feed` | Subscribe to the threat intelligence feed |
-| `threat_record` | Log a threat observation |
-| `threat_match` | Match an event against known signatures |
-| `threat_signature` | Create or query a threat signature |
-| `threat_mitigate` | Apply a mitigation for a known threat |
-| `threat_trending` | Trending threats over time |
-| `threat_stats` | Aggregate threat statistics |
-| `correlate_threat` | Correlate a single event across the chain |
-| `coordinated_attack_check` | Detect coordinated multi-agent attack patterns |
-| `detect_campaign` | Detect long-running threat campaigns |
-| `related_signatures` | Find signatures related to a given threat |
+Not a working control in this tree. The 2.8.0 server still registers
+`threat_*` and correlation tool functions (`novyx_mcp/server.py`), but
+`novyx_mcp/local_backend.py` raises `CloudFeatureError` from
+`_cloud_only("Sentinel Intel")` for every one of them, and
+`novyx_mcp/cloud_backend.py` only forwards them to the `/v1/sentinel-intel/*`
+API. That backend detected nothing (threats were client-asserted and the
+similarity thresholds were ignored) and was cut from Novyx Core. Package 2.9.0
+removed these tools (see `packages/novyx-mcp/CHANGELOG.md` in novyx-core). The
+old tool table is gone so this README does not list detection, matching, or
+campaign correlation that nothing performs.
 
 ### Defense tracking
 
