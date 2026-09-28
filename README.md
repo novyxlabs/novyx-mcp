@@ -9,7 +9,9 @@ Governed actions, shared memory, audit, and rollback for MCP clients such as
 **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
 config (SQLite) for memory and policy-evaluation workflows, or connects to
 Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
-Runtime v2, threat intelligence, defense tracking, replay, and eval baselines.
+Runtime v2, replay, and eval baselines. The threat-intelligence and
+defense-tracking tools were removed in 2.9.0 and never enforced anything;
+upgrade to 2.9.0 or later.
 
 ## What To Try First
 
@@ -225,37 +227,10 @@ First-class agents, missions, capability packs, checkpoints, and human intervent
 
 Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
 
-### Threat Intelligence (11 tools — Pro+)
+### Threat-intelligence and defense-tracking tools
 
-Detect, signature, and correlate adversarial activity across agents.
-
-| Tool | Description |
-|------|-------------|
-| `threat_feed` | Subscribe to the threat intelligence feed |
-| `threat_record` | Log a threat observation |
-| `threat_match` | Match an event against known signatures |
-| `threat_signature` | Create or query a threat signature |
-| `threat_mitigate` | Apply a mitigation for a known threat |
-| `threat_trending` | Trending threats over time |
-| `threat_stats` | Aggregate threat statistics |
-| `correlate_threat` | Correlate a single event across the chain |
-| `coordinated_attack_check` | Detect coordinated multi-agent attack patterns |
-| `detect_campaign` | Detect long-running threat campaigns |
-| `related_signatures` | Find signatures related to a given threat |
-
-### Defense Tracking (7 tools)
-
-Deploy and tune automated defensive rules.
-
-| Tool | Description |
-|------|-------------|
-| `defense_deploy` | Deploy a new defense rule |
-| `defense_list` | List all active defenses |
-| `defense_remove` | Remove a defense rule |
-| `defense_recommend` | Get AI-recommended defenses for current threats |
-| `defense_effectiveness` | Measure how effective a defense has been |
-| `defense_record_block` | Log a successful block by a defense |
-| `defense_stats` | Aggregate defense performance stats |
+These tools were removed in novyx-mcp 2.9.0. They never enforced anything.
+Upgrade to novyx-mcp 2.9.0 or later.
 
 ### Replay (7 tools — Pro+)
 

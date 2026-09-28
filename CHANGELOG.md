@@ -155,6 +155,7 @@ same class of drift cannot ship again.
 119 tools across 11 categories: Core Memory, Drafts & Branches, Rollback,
 Context Spaces, Novyx Control (Governance), Runtime v2, Threat
 Intelligence, Auto-Defense, Replay, Eval, Cortex, Traces, Operational.
+Removed in 2.9.0, the threat-intelligence and auto-defense tools listed above. They never enforced anything.
 See README for the full list.
 
 ## 2.4.0 (2026-03-XX)
