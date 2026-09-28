@@ -9,7 +9,8 @@ Governed actions, shared memory, audit, and rollback for MCP clients such as
 **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
 config (SQLite) for memory and policy-evaluation workflows, or connects to
 Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
-Runtime v2, threat intelligence, defense tracking, replay, and eval baselines.
+Runtime v2, replay, and eval baselines. Threat-intelligence and defense-tracking
+calls in this 2.8.0 tree are not a working control; see Defense tracking below.
 
 ## What To Try First
 
@@ -243,19 +244,16 @@ Detect, signature, and correlate adversarial activity across agents.
 | `detect_campaign` | Detect long-running threat campaigns |
 | `related_signatures` | Find signatures related to a given threat |
 
-### Defense Tracking (7 tools)
+### Defense tracking
 
-Deploy and tune automated defensive rules.
-
-| Tool | Description |
-|------|-------------|
-| `defense_deploy` | Deploy a new defense rule |
-| `defense_list` | List all active defenses |
-| `defense_remove` | Remove a defense rule |
-| `defense_recommend` | Get AI-recommended defenses for current threats |
-| `defense_effectiveness` | Measure how effective a defense has been |
-| `defense_record_block` | Log a successful block by a defense |
-| `defense_stats` | Aggregate defense performance stats |
+Not a working control in this tree. `novyx_mcp/local_backend.py` raises
+`CloudFeatureError` from `_cloud_only("Sentinel Intel")` for these calls and
+does not install a rule. `novyx_mcp/cloud_backend.py` only forwards them to
+the API client. Package 2.9.0 removed that surface because the backing
+subsystem detected and enforced nothing (see `packages/novyx-mcp/CHANGELOG.md`
+in novyx-core, and `packages/novyx-mcp/tests/test_no_auto_defense_surface.py`).
+This mirror is still 2.8.0 (`pyproject.toml`). The old tool table is gone so
+this README does not list rules it does not enforce.
 
 ### Replay (7 tools — Pro+)
 
