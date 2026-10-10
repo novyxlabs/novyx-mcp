@@ -9,7 +9,9 @@ Governed actions, shared memory, audit, and rollback for MCP clients such as
 **Claude Desktop**, **Cursor**, and **Claude Code**. Works locally with zero
 config (SQLite) for memory and policy-evaluation workflows, or connects to
 Novyx Cloud for policy-as-code, approval workflows, governance dashboards,
-Runtime v2, threat intelligence, defense tracking, replay, and eval baselines.
+Runtime v2, replay, and eval baselines. The threat-intelligence and
+defense-tracking tools were removed in 2.9.0 and never enforced anything;
+upgrade to 2.9.0 or later.
 
 ## What To Try First
 
