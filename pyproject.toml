@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "novyx-mcp"
-version = "2.8.0"
+version = "2.9.0"
 description = "MCP tools for Novyx governed actions, shared memory, audit, rollback, and evidence workflows. Local SQLite memory works zero-config; hosted governance and approvals use Novyx Cloud."
 readme = "README.md"
 license = {text = "MIT"}

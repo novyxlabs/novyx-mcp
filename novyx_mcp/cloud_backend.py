@@ -343,71 +343,7 @@ class CloudBackend:
     def explain_action(self, action_id: str) -> dict[str, Any]:
         return self._client.explain_action(action_id)
 
-    # ------------------------------------------------------------------
-    # Sentinel Intel — Threat Intelligence (Pro+)
-    # ------------------------------------------------------------------
 
-    def threat_feed(self, **kwargs: Any) -> dict[str, Any]:
-        return self._client.threat_feed(**kwargs)
-
-    def threat_stats(self) -> dict[str, Any]:
-        return self._client.threat_stats()
-
-    def threat_record(self, threat_event: dict) -> dict[str, Any]:
-        return self._client.threat_record(threat_event)
-
-    def threat_trending(self, **kwargs: Any) -> dict[str, Any]:
-        return self._client.threat_trending(**kwargs)
-
-    def threat_match(self, threat_event: dict, **kwargs: Any) -> dict[str, Any]:
-        return self._client.threat_match(threat_event, **kwargs)
-
-    def threat_signature(self, signature_id: str) -> dict[str, Any]:
-        return self._client.threat_signature(signature_id)
-
-    def threat_mitigate(self, signature_id: str) -> dict[str, Any]:
-        return self._client.threat_mitigate(signature_id)
-
-    # ------------------------------------------------------------------
-    # Sentinel Intel — Auto Defense (Pro+)
-    # ------------------------------------------------------------------
-
-    def defense_list(self, **kwargs: Any) -> dict[str, Any]:
-        return self._client.defense_list(**kwargs)
-
-    def defense_deploy(self, signature_id: str, rule_type: str, rule_config: dict | None = None) -> dict[str, Any]:
-        return self._client.defense_deploy(signature_id, rule_type, rule_config)
-
-    def defense_remove(self, defense_id: str) -> dict[str, Any]:
-        return self._client.defense_remove(defense_id)
-
-    def defense_effectiveness(self, defense_id: str) -> dict[str, Any]:
-        return self._client.defense_effectiveness(defense_id)
-
-    def defense_record_block(self, defense_id: str, **kwargs: Any) -> dict[str, Any]:
-        return self._client.defense_record_block(defense_id, **kwargs)
-
-    def defense_stats(self) -> dict[str, Any]:
-        return self._client.defense_stats()
-
-    def defense_recommend(self, signature_id: str) -> dict[str, Any]:
-        return self._client.defense_recommend(signature_id)
-
-    # ------------------------------------------------------------------
-    # Sentinel Intel — Correlation (Pro+)
-    # ------------------------------------------------------------------
-
-    def correlate_threat(self, threat_event: dict) -> dict[str, Any]:
-        return self._client.correlate_threat(threat_event)
-
-    def detect_campaign(self, **kwargs: Any) -> dict[str, Any]:
-        return self._client.detect_campaign(**kwargs)
-
-    def coordinated_attack_check(self, threat_events: list, **kwargs: Any) -> dict[str, Any]:
-        return self._client.coordinated_attack_check(threat_events, **kwargs)
-
-    def related_signatures(self, signature_id: str, **kwargs: Any) -> dict[str, Any]:
-        return self._client.related_signatures(signature_id, **kwargs)
 
     # ------------------------------------------------------------------
     # Streams

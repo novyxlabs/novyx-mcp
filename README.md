@@ -227,12 +227,6 @@ First-class agents, missions, capability packs, checkpoints, and human intervent
 
 Capabilities require Starter+. Checkpoints require Pro+. Interventions require Enterprise.
 
-### Threat-intelligence and defense-tracking tools
-
-These tools were removed in novyx-mcp 2.9.0. They never enforced anything.
-Upgrade to novyx-mcp 2.9.0 or later.
-This repository's code is still at 2.8.0 and still includes those tools. They don't enforce anything.
-
 ### Replay (7 tools — Pro+)
 
 Time-travel debugging — inspect how memory changed over time.

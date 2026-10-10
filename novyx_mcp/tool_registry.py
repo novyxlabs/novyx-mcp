@@ -64,14 +64,6 @@ TOOL_REGISTRY: dict[str, ToolInfo] = {
     "cortex_status": {"status": "functional", "category": "cortex", "description": "Get Cortex autonomous intelligence status."},
     "cortex_update_config": {"status": "functional", "category": "cortex", "description": "Update Cortex configuration."},
 
-    # --- defense ---
-    "defense_deploy": {"status": "functional", "category": "defense", "description": "Deploy a defense rule against a threat signature."},
-    "defense_effectiveness": {"status": "functional", "category": "defense", "description": "Measure the effectiveness of a deployed defense."},
-    "defense_list": {"status": "functional", "category": "defense", "description": "List active auto-deployed defense rules."},
-    "defense_recommend": {"status": "functional", "category": "defense", "description": "Get a recommended defense strategy for a threat signature."},
-    "defense_record_block": {"status": "functional", "category": "defense", "description": "Record that a defense blocked a threat."},
-    "defense_remove": {"status": "functional", "category": "defense", "description": "Remove a deployed defense rule."},
-    "defense_stats": {"status": "functional", "category": "defense", "description": "Get overall defense statistics."},
 
     # --- eval ---
     "eval_baseline_create": {"status": "functional", "category": "eval", "description": "Save a recall baseline for regression testing."},
@@ -171,18 +163,6 @@ TOOL_REGISTRY: dict[str, ToolInfo] = {
     "dashboard": {"status": "functional", "category": "system", "description": "Get a full dashboard overview."},
     "stream_status": {"status": "functional", "category": "system", "description": "Get real-time memory stream connection status."},
 
-    # --- threat ---
-    "coordinated_attack_check": {"status": "functional", "category": "threat", "description": "Check if multiple threat events are part of a coordinated attack."},
-    "correlate_threat": {"status": "functional", "category": "threat", "description": "Check if a threat correlates with attacks on other tenants."},
-    "detect_campaign": {"status": "functional", "category": "threat", "description": "Detect an ongoing attack campaign."},
-    "related_signatures": {"status": "functional", "category": "threat", "description": "Find threat signatures related to a given signature."},
-    "threat_feed": {"status": "functional", "category": "threat", "description": "Get the anonymized threat intelligence feed."},
-    "threat_match": {"status": "functional", "category": "threat", "description": "Find known threat signatures matching a threat event."},
-    "threat_mitigate": {"status": "functional", "category": "threat", "description": "Mark a threat signature as mitigated."},
-    "threat_record": {"status": "functional", "category": "threat", "description": "Record a threat event for cross-tenant intelligence."},
-    "threat_signature": {"status": "functional", "category": "threat", "description": "Get a specific threat signature by ID."},
-    "threat_stats": {"status": "functional", "category": "threat", "description": "Get overall threat intelligence statistics."},
-    "threat_trending": {"status": "functional", "category": "threat", "description": "Get trending threat signatures."},
 
     # --- trace ---
     "explain_action": {"status": "functional", "category": "trace", "description": "Get the full causal chain for a Control action."},

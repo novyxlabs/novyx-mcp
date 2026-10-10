@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.9.0 (2026-07-04)
+
+### Removed — threat-intelligence / auto-defense tools
+
+- Removed the 18 `threat_*`, `defense_*`, `correlate_threat`, `detect_campaign`,
+  `coordinated_attack_check`, and `related_signatures` tools. The backing
+  subsystem was cut from Novyx Core (it detected and enforced nothing), so these
+  tools only proxied to endpoints that no longer exist. Tool count 120 → 102.
+
 ## 2.8.0 (2026-07-01)
 
 ### Changed — distribution refresh for governed agent work
